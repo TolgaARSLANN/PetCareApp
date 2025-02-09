@@ -1,0 +1,53 @@
+/* Global Styles */
+* {
+  box-sizing: border-box;
+}
+
+.navbar {
+  background-color: #f41c44; /* Daha açık pastel pembe */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Hafif gölge */
+  padding: 10px 20px;
+}
+
+.navbar-brand {
+  font-family: 'Lobster', cursive; /* Lobster fontunu kullanıyoruz */
+  font-size: 24px;
+  color: #5d5d5d; /* Daha koyu gri yazı rengi */
+  text-decoration: none;
+}
+
+.navbar-nav .nav-link {
+  font-family: 'Lobster', sans-serif; /* Modern ve okunabilir bir font */
+  font-size: 16px;
+  color: #111111; /* Daha koyu bir siyah renk */
+  margin-right: 15px;
+  transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+  color: #ff6f61; /* Dikkat çekici bir pastel kırmızı */
+}
+
+.navbar-toggler {
+  border: none;
+  cursor: pointer;
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='rgba(93, 93, 93, 0.7)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 600px) {
+  .navbar {
+      padding: 10px;
+  }
+
+  .navbar-brand {
+      font-size: 20px;
+  }
+
+  .navbar-nav .nav-link {
+      font-size: 14px;
+      margin-right: 10px;
+  }
+}
