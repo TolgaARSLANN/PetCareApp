@@ -19,8 +19,9 @@ Pawfect Care, evcil hayvan sahiplerinin sağlık takibi, aşı ve randevu planla
 
 🔧 Backend (Server) Kurulumu
 📡 MongoDB bağlantısını kurmak ve backend sunucusunu çalıştırmak için:
-cd server
-node index.js
+#sh
+#cd server
+#node index.js
 
 🎨 Frontend (Client) Kurulumu
 💻 React.js tabanlı frontend uygulamasını çalıştırmak için:
