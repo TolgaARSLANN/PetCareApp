@@ -3,44 +3,43 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const config = require('./config');
+
+const authRoutes = require('./routes/auth');
+const petRoutes = require('./routes/pets');
+const blogRoutes = require('./routes/blogs');
 
 const app = express();
 
-// Orijinler arası istek (CORS) ve JSON parse ayarları
-app.use(cors());
+// CORS: only the configured frontend origin may call the API
+app.use(cors({ origin: config.clientOrigin }));
 app.use(express.json());
 
-// MongoDB bağlantısı
-mongoose.connect('mongodb://127.0.0.1:27017/pet_care_db')
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-// Basit test endpoint
+// Health check
 app.get('/', (req, res) => {
   res.send('Pet Care API running...');
 });
 
-// ...
-const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
-
-// Örnek korumalı rota kullanımı:
-const authMiddleware = require('./middleware/authMiddleware');
-app.get('/api/secure-data', authMiddleware, (req, res) => {
-  res.json({ secret: 'Bu veriyi yalnızca giriş yapmış kullanıcılar görür' });
-});
-//...
-
-// Pet rotalarını dahil ediyoruz
-const petRoutes = require('./routes/pets');
 app.use('/api/pets', petRoutes);
-
-// Sunucuyu dinlet
-const port = 5000;
-app.listen(port, () => {
-  console.log(`Server is listening on port ${port}`);
-});
-
-const blogRoutes = require('./routes/blogs');
 app.use('/api/blogs', blogRoutes);
 
+// Fallback error handler for anything a route did not catch
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Server error' });
+});
+
+mongoose
+  .connect(config.mongoUri)
+  .then(() => {
+    console.log('MongoDB connected');
+    app.listen(config.port, () => {
+      console.log(`Server is listening on port ${config.port}`);
+    });
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });

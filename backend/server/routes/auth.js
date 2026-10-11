@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const config = require('../config');
 
 // Kullanıcı Kaydı
 router.post('/register', async (req, res) => {
@@ -26,7 +27,7 @@ router.post('/login', async (req, res) => {
   const match = await bcrypt.compare(password, user.password);
   if (!match) return res.status(400).json({ message: 'Invalid credentials' });
 
-  const token = jwt.sign({ userId: user._id }, 'SECRET_KEY', { expiresIn: '1d' });
+  const token = jwt.sign({ userId: user._id }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
   res.json({ token });
 });
 
