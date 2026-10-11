@@ -7,9 +7,11 @@ import Field from "./ui/Field";
 import PasswordInput from "./ui/PasswordInput";
 import { Spinner } from "./ui/Loading";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { useAuth } from "../context/useAuth";
 
-const Login = ({ setIsLoggedIn }) => {
+const Login = () => {
   useDocumentTitle("Giriş yap");
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,18 +24,21 @@ const Login = ({ setIsLoggedIn }) => {
     setBusy(true);
     setError("");
     try {
-      const response = await API.post("/auth/login", { email, password });
-      localStorage.setItem("token", response.data.token); // Token'ı localStorage'a kaydet
-      setIsLoggedIn(true);
-      navigate("/pets");
+      // Sunucu oturumu httpOnly çerezle başlatır; yanıtta yalnızca kullanıcı ID'si gelir
+      const { data } = await API.post("/auth/login", { email, password });
+      login(data.userId);
+      // Girişe bir korumalı sayfadan yönlendirildiyse oraya geri dön
+      navigate(location.state?.from || "/pets", { replace: true });
     } catch (err) {
       const status = err.response?.status;
       setError(
         status === 400
           ? "E-posta veya parola hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
-          : status
-            ? "Giriş şu anda yapılamıyor. Lütfen biraz sonra tekrar deneyin."
-            : "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin."
+          : status === 429
+            ? "Çok fazla başarısız deneme yapıldı. Güvenliğiniz için lütfen 15 dakika sonra tekrar deneyin."
+            : status
+              ? "Giriş şu anda yapılamıyor. Lütfen biraz sonra tekrar deneyin."
+              : "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin."
       );
       setBusy(false);
     }

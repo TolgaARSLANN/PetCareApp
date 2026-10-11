@@ -3,10 +3,12 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { List, SignOut, X } from "@phosphor-icons/react";
 import Logo from "./ui/Logo";
 import ThemeToggle from "./ui/ThemeToggle";
+import { useAuth } from "../context/useAuth";
 
 const navClass = ({ isActive }) => `nav-link ${isActive ? "is-active" : ""}`;
 
-const Navbar = ({ isLoggedIn, setIsLoggedIn }) => {
+const Navbar = () => {
+  const { isLoggedIn, checking, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -22,9 +24,8 @@ const Navbar = ({ isLoggedIn, setIsLoggedIn }) => {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -57,7 +58,8 @@ const Navbar = ({ isLoggedIn, setIsLoggedIn }) => {
           </ul>
 
           <div className="nav-actions">
-            {isLoggedIn ? (
+            {/* Oturum kontrol edilirken düğmeler bir an yanlış görünmesin */}
+            {checking ? null : isLoggedIn ? (
               <button type="button" className="btn btn-secondary btn-sm" onClick={handleLogout}>
                 <SignOut size={18} aria-hidden="true" />
                 Çıkış yap

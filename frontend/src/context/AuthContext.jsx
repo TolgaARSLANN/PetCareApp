@@ -1,0 +1,49 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import API from "../services/api";
+import { AuthContext } from "./useAuth";
+
+// Oturum durumu: sayfa açılınca sunucuya sorulur (/auth/me). Token httpOnly çerezde
+// olduğu için tarayıcı kodu onu okuyamaz; kim olduğumuzu yalnızca sunucu söyler.
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null); // { id } | null
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    // Eski sürümden kalan, JavaScript'in okuyabildiği token'ı temizle
+    try {
+      localStorage.removeItem("token");
+    } catch {
+      // Depolama kapalı olabilir; önemli değil
+    }
+
+    let cancelled = false;
+    API.get("/auth/me")
+      .then(({ data }) => !cancelled && setUser(data.userId ? { id: data.userId } : null))
+      .catch(() => !cancelled && setUser(null))
+      .finally(() => !cancelled && setChecking(false));
+
+    const onExpired = () => setUser(null);
+    window.addEventListener("auth:expired", onExpired);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("auth:expired", onExpired);
+    };
+  }, []);
+
+  const login = useCallback((userId) => setUser({ id: userId }), []);
+
+  const logout = useCallback(async () => {
+    try {
+      await API.post("/auth/logout");
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, isLoggedIn: Boolean(user), checking, login, logout }),
+    [user, checking, login, logout]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

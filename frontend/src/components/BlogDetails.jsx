@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Article, ArrowLeft, PencilSimple } from "@phosphor-icons/react";
 import API from "../services/api";
-import { getCurrentUserId } from "../services/auth";
+import { useAuth } from "../context/useAuth";
 import { BlogCover } from "./BlogList";
 import EmptyState from "./ui/EmptyState";
 import { PageLoader } from "./ui/Loading";
@@ -14,6 +14,7 @@ const BlogDetails = () => {
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const currentUserId = useAuth().user?.id;
   useDocumentTitle(blog?.title || "Blog");
 
   useEffect(() => {
@@ -52,7 +53,7 @@ const BlogDetails = () => {
     );
   }
 
-  const isOwner = blog.authorId && blog.authorId === getCurrentUserId();
+  const isOwner = blog.authorId && blog.authorId === currentUserId;
 
   return (
     <article className="container container-narrow page">

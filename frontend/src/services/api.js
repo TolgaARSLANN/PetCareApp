@@ -1,42 +1,22 @@
 import axios from "axios";
 
+// Oturum, sunucunun koyduğu httpOnly çerezle taşınır; sayfa kodu token'ı hiç görmez.
+// Çerezin güvenle gönderilmesi için API, uygulamayla aynı adresten (/api) sunulur:
+// geliştirmede Vite proxy'si (vite.config.js), yayında barındırma servisinin yönlendirmesi.
 const API = axios.create({
-  // Deploy ederken frontend/.env içinde VITE_API_URL tanımlayın
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
+  withCredentials: true,
 });
 
-// Her istekte token göndermek için interceptor
-API.interceptors.request.use(
-  (req) => {
-    const token = localStorage.getItem("token"); // LocalStorage'dan token al
-    if (token) {
-      req.headers.Authorization = `Bearer ${token}`;
-    }
-    return req;
-  },
-  (error) => {
-    console.error("Request error:", error);
-    return Promise.reject(error);
-  }
-);
+// Oturum süresi dolduğunda (401) uygulamaya haber ver; AuthContext kullanıcıyı çıkış yapmış sayar
+// ve korunan sayfalar giriş ekranına yönlendirir. Oturum kontrolü ve girişin kendi 401'leri hariç.
+const SESSION_ENDPOINTS = ["/auth/me", "/auth/login"];
 
-// Yanıtların hata işleme mekanizması
 API.interceptors.response.use(
-  (response) => {
-    return response; // Yanıt başarılıysa direkt döndür
-  },
+  (response) => response,
   (error) => {
-    if (error.response) {
-      // Sunucudan dönen hata durumları
-      console.error("Response error:", error.response.data.message || error.response.statusText);
-      if (error.response.status === 401) {
-        // Yetkilendirme hatası durumunda kullanıcıyı çıkışa zorla
-        localStorage.removeItem("token");
-        window.location.href = "/login";
-      }
-    } else {
-      // Sunucudan yanıt alınamayan durumlar
-      console.error("Network error:", error.message);
+    if (error.response?.status === 401 && !SESSION_ENDPOINTS.includes(error.config?.url)) {
+      window.dispatchEvent(new Event("auth:expired"));
     }
     return Promise.reject(error);
   }

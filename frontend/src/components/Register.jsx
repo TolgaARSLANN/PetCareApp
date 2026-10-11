@@ -13,6 +13,8 @@ const ERROR_TRANSLATIONS = {
   "Email in use": "Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.",
   "A valid email is required": "Geçerli bir e-posta adresi girin.",
   "Password must be at least 6 characters": "Parola en az 6 karakter olmalı.",
+  "Too many attempts, please try again later":
+    "Çok fazla başarısız deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin.",
 };
 
 const Register = () => {

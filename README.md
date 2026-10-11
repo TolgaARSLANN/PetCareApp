@@ -142,6 +142,10 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 | `JWT_SECRET` | *(required)* | Secret used to sign login tokens |
 | `JWT_EXPIRES_IN` | `1d` | Token lifetime |
 | `CLIENT_ORIGIN` | `http://localhost:3000` | Frontend origin allowed by CORS |
+| `NODE_ENV` | — | Set to `production` when deployed (session cookie becomes HTTPS-only) |
+| `AUTH_RATE_LIMIT` | `10` | Failed login / register attempts per IP per 15 minutes |
+| `API_RATE_LIMIT` | `1000` | API requests per IP per 15 minutes |
+| `TRUST_PROXY` | `0` | Reverse proxies in front of the API (usually `1` when hosted), so rate limits see the real client IP |
 
 Start the server:
 
@@ -163,11 +167,9 @@ npm install
 npm run dev     # npm start also works
 ```
 
-The app opens at `http://localhost:3000`.
+The app opens at `http://localhost:3000`. The Vite dev server forwards `/api` requests to the backend on port 5000, so the browser sees the app and the API on the same address (required for the session cookie, see [Security](#-security)).
 
-`npm run build` creates a production build in `frontend/build/`, and `npm run preview` serves it locally.
-
-To point the frontend at a different API (for example after deploying the backend), copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL`.
+`npm run build` creates a production build in `frontend/build/`, and `npm run preview` serves it locally (also with the `/api` proxy).
 
 ### 4. Run the tests
 
@@ -187,16 +189,30 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 
 ---
 
+## 🔒 Security
+
+- **Session cookie:** after login the JWT is stored in an `httpOnly`, `SameSite=Strict` cookie scoped to `/api` (and `Secure` in production). Page scripts cannot read it, so an XSS bug cannot steal the session, and the browser does not send it on cross-site requests (CSRF). The login response only contains the user id.
+- **Same-site API:** because of `SameSite=Strict`, the frontend must reach the API on its own address under `/api`. In development the Vite proxy does this; when deploying, add a rewrite on the frontend host (for example a Vercel rewrite of `/api/:path*` to the backend URL) and set `TRUST_PROXY=1` on the backend.
+- **Brute-force protection:** at most 10 failed login / register attempts per IP per 15 minutes (`429` afterwards); successful logins don't count.
+- **Rate limit:** 1000 API requests per IP per 15 minutes.
+- **Security headers** via [helmet](https://helmetjs.github.io/) (no-sniff, frame denial, HSTS, CSP, no `X-Powered-By`).
+- **Request size:** JSON bodies are limited to 100 KB; malformed JSON returns `400`.
+- **Passwords** are hashed with bcrypt; every pet and record query is scoped to the logged-in owner.
+
+---
+
 ## 📡 API Endpoints
 
-🔒 = requires an `Authorization: Bearer <token>` header.
+🔒 = requires a session: the `token` cookie set by login (browsers), or an `Authorization: Bearer <token>` header (other API clients).
 
 ### Auth
 
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/auth/register` | Create an account (`email`, `password`) |
-| `POST` | `/api/auth/login` | Log in and receive a JWT |
+| `POST` | `/api/auth/login` | Log in; sets the session cookie and returns `{ userId }` |
+| `GET` | `/api/auth/me` | Current user: `{ userId }`, or `{ userId: null }` when logged out |
+| `POST` | `/api/auth/logout` | Clear the session cookie |
 
 ### Pets 🔒
 
