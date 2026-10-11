@@ -60,9 +60,6 @@ const Login = () => {
         </>
       }
     >
-      {location.state?.registered && !error && (
-        <Alert type="success">Kaydınız tamamlandı. Şimdi giriş yapabilirsiniz.</Alert>
-      )}
       {SESSION_NOTICES[location.state?.reason] && !error && (
         <Alert type="info">{SESSION_NOTICES[location.state.reason]}</Alert>
       )}

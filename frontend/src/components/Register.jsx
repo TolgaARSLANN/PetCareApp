@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import API from "../services/api";
+import { useAuth } from "../context/useAuth";
 import { isPasswordTooLong, PASSWORD_TOO_LONG } from "../utils/validation";
 import AuthShell from "./AuthShell";
 import Alert from "./ui/Alert";
@@ -25,7 +26,7 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,8 +37,10 @@ const Register = () => {
     setBusy(true);
     setError("");
     try {
-      await API.post("/auth/register", { email, password });
-      navigate("/login", { state: { registered: true } });
+      // Sunucu kayıtla birlikte oturumu da başlatır; giriş formuna gerek kalmaz.
+      // Yönlendirmeyi GuestOnly yapar (oturum açılınca /pets'e gider).
+      const { data } = await API.post("/auth/register", { email, password });
+      login(data.userId);
     } catch (err) {
       const message = err.response?.data?.message;
       setError(

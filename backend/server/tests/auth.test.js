@@ -26,9 +26,14 @@ describe('POST /api/auth/register', () => {
 
   test('creates the user with a hashed password', async () => {
     jest.spyOn(User, 'findOne').mockResolvedValue(null);
-    const create = jest.spyOn(User, 'create').mockResolvedValue({});
+    const create = jest.spyOn(User, 'create').mockResolvedValue({ _id: 'u7', tokenVersion: 0 });
     const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456' });
     expect(res.status).toBe(201);
+    // Kayıt oturumu da başlatır: yanıtta yalnızca kullanıcı ID'si, token httpOnly çerezde
+    expect(res.body).toEqual({ userId: 'u7' });
+    const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(jwt.verify(cookie.split(';')[0].slice('token='.length), 'test-secret').userId).toBe('u7');
     const saved = create.mock.calls[0][0];
     expect(saved.password).not.toBe('123456');
     expect(await bcrypt.compare('123456', saved.password)).toBe(true);

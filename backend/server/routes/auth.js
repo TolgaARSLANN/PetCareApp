@@ -51,9 +51,11 @@ router.post('/register', authLimiter, async (req, res) => {
     if (existingUser) return res.status(400).json({ message: 'Email in use' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({ email: normalizeEmail(email), password: hashedPassword });
+    const user = await User.create({ email: normalizeEmail(email), password: hashedPassword });
 
-    res.status(201).json({ message: 'User registered' });
+    // Kayıt olan kişi doğrudan oturum açmış olur (aynı bilgileri bir de giriş formuna yazmasın)
+    startSession(res, user);
+    res.status(201).json({ userId: String(user._id) });
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ message: 'Server error' });

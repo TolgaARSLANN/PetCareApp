@@ -215,7 +215,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/auth/register` | Create an account (`email`, `password`) |
+| `POST` | `/api/auth/register` | Create an account (`email`, `password`); logs the new user in (sets the session cookie) and returns `{ userId }` |
 | `POST` | `/api/auth/login` | Log in; sets the session cookie and returns `{ userId }` |
 | `GET` | `/api/auth/me` | Current user: `{ userId }`, or `{ userId: null }` when logged out |
 | `POST` | `/api/auth/logout` | Clear the session cookie |

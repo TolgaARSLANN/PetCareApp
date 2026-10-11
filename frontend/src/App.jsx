@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
+import { createBrowserRouter, Outlet, RouterProvider, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { GuestOnly, RequireAuth } from "./components/RouteGuards";
 import Navbar from "./components/Navbar";
@@ -31,31 +31,86 @@ const RouteChangeHandler = () => {
   return null;
 };
 
+// Her sayfada ortak çerçeve: menü, içerik ve alt bilgi
+const Layout = () => (
+  <>
+    <RouteChangeHandler />
+    <a href="#main" className="skip-link">
+      İçeriğe geç
+    </a>
+    <Navbar />
+    <main id="main" tabIndex={-1}>
+      <Outlet />
+    </main>
+    <Footer />
+  </>
+);
+
+// Veri yönlendiricisi (createBrowserRouter): kaydedilmemiş değişiklik uyarısı (useBlocker) bunu gerektirir
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { path: "/", element: <Home /> },
+      {
+        path: "/login",
+        element: (
+          <GuestOnly>
+            <Login />
+          </GuestOnly>
+        ),
+      },
+      {
+        path: "/register",
+        element: (
+          <GuestOnly>
+            <Register />
+          </GuestOnly>
+        ),
+      },
+      {
+        path: "/pets",
+        element: (
+          <RequireAuth>
+            <PetList />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/pets/:id",
+        element: (
+          <RequireAuth>
+            <PetDetails />
+          </RequireAuth>
+        ),
+      },
+      { path: "/blogs", element: <BlogList /> },
+      { path: "/blogs/:id", element: <BlogDetails /> },
+      {
+        path: "/blogs/edit/:id",
+        element: (
+          <RequireAuth>
+            <BlogEditForm />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "/account",
+        element: (
+          <RequireAuth>
+            <Account />
+          </RequireAuth>
+        ),
+      },
+      { path: "/about-us", element: <AboutUs /> },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
+]);
+
 const App = () => (
   <AuthProvider>
-    <Router>
-      <RouteChangeHandler />
-      <a href="#main" className="skip-link">
-        İçeriğe geç
-      </a>
-      <Navbar />
-      <main id="main" tabIndex={-1}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
-          <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
-          <Route path="/pets" element={<RequireAuth><PetList /></RequireAuth>} />
-          <Route path="/pets/:id" element={<RequireAuth><PetDetails /></RequireAuth>} />
-          <Route path="/blogs" element={<BlogList />} />
-          <Route path="/blogs/:id" element={<BlogDetails />} />
-          <Route path="/blogs/edit/:id" element={<RequireAuth><BlogEditForm /></RequireAuth>} />
-          <Route path="/account" element={<RequireAuth><Account /></RequireAuth>} />
-          <Route path="/about-us" element={<AboutUs />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-      <Footer />
-    </Router>
+    <RouterProvider router={router} />
   </AuthProvider>
 );
 
