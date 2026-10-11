@@ -39,7 +39,7 @@ The UI is in Turkish.
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React 18, React Router, Axios, Bootstrap 5
+- **Frontend:** React 18, Vite, React Router, Axios, Bootstrap 5
 - **Backend:** Node.js, Express 4, Mongoose, JSON Web Tokens, bcrypt, dotenv
 - **Testing:** Jest, Supertest
 - **Database:** MongoDB
@@ -65,12 +65,13 @@ PetCareApp/
 │
 ├── frontend/
 │   ├── .env.example              # Optional API URL override
-│   ├── public/
+│   ├── index.html                # Vite entry page
+│   ├── vite.config.js            # Dev server port and build settings
 │   └── src/
 │       ├── components/           # Pages and UI components
 │       ├── services/             # Axios API client and auth helpers
 │       ├── styles/
-│       └── App.js                # Routes
+│       └── App.jsx               # Routes
 │
 ├── LICENSE
 └── README.md
@@ -82,7 +83,7 @@ PetCareApp/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18 or newer
+- [Node.js](https://nodejs.org/) 20.19+ or 22.12+ (required by Vite)
 - [MongoDB](https://www.mongodb.com/) running locally, or a MongoDB Atlas connection string
 
 ### 1. Clone the repository
@@ -131,12 +132,14 @@ In a second terminal:
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev     # npm start also works
 ```
 
 The app opens at `http://localhost:3000`.
 
-To point the frontend at a different API (for example after deploying the backend), copy `frontend/.env.example` to `frontend/.env` and set `REACT_APP_API_URL`.
+`npm run build` creates a production build in `frontend/build/`, and `npm run preview` serves it locally.
+
+To point the frontend at a different API (for example after deploying the backend), copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL`.
 
 ### 4. Run the tests
 
