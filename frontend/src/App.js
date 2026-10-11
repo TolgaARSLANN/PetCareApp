@@ -49,7 +49,7 @@ const App = () => {
         <Route path="/pets/:id" element={isLoggedIn ? <PetDetails /> : <Navigate to="/login" />} />
         <Route path="/blogs" element={<BlogList />} /> {/* Blog listesi rotası */}
         <Route path="/blogs/:id" element={<BlogDetails />} /> {/* Blog detayları rotası */}
-        <Route path="/blogs/edit/:id" element={<BlogEditForm />} /> {/* Blog düzenleme rotası */}
+        <Route path="/blogs/edit/:id" element={isLoggedIn ? <BlogEditForm /> : <Navigate to="/login" />} /> {/* Blog düzenleme rotası */}
         <Route path="/about-us" element={<AboutUs />} /> {/* About Us rotası */}
       </Routes>
     </Router>
