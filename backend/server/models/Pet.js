@@ -4,7 +4,12 @@ const mongoose = require('mongoose');
 
 const petSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  species: { type: String, default: 'kedi' },
+  // Öneri sistemi için küçük harfe çevrilir ("Kedi" -> "kedi")
+  species: {
+    type: String,
+    default: 'kedi',
+    set: (v) => (typeof v === 'string' ? v.trim().toLocaleLowerCase('tr-TR') : v),
+  },
   birthDate: Date,
   vaccines: [
     {
@@ -24,7 +29,7 @@ const petSchema = new mongoose.Schema({
   weightHistory: [
     {
       date: { type: Date, default: Date.now },
-      weight: Number, // Gram veya kilogram cinsinden tutabilirsiniz.
+      weight: Number, // Kilogram (kg) cinsinden
     },
   ],
 
