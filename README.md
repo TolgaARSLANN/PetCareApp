@@ -30,7 +30,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 | 🐶 **Pet Profiles** | Add, edit and delete pets; every pet is visible only to its owner |
 | 🏥 **Health Records** | Log dated health notes for each pet; every record (health, vaccine, weight, medication, appointment, contact) can be edited or deleted |
 | 💉 **Vaccines** | Record vaccines with the date given and the booster due date; overdue and upcoming (30 days) boosters are flagged |
-| ⚖️ **Weight Tracking** | Record weight measurements over time |
+| ⚖️ **Weight Tracking** | Record weight measurements over time; a line chart shows the trend (hover or arrow keys for each value) |
 | 💊 **Medications** | Track medication name, dosage, frequency and dates |
 | 📅 **Appointments** | Keep a list of vet appointments with date, time, reason and location |
 | 🚑 **Emergency Contacts** | Store a vet or trusted person to call in an emergency |
