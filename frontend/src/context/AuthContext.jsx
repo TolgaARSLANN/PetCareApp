@@ -7,6 +7,8 @@ import { AuthContext } from "./useAuth";
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // { id } | null
   const [checking, setChecking] = useState(true);
+  // Oturum neden kapandı: "accountDeleted" ise korumalı sayfalar girişe değil ana sayfaya yönlendirir
+  const [endReason, setEndReason] = useState(null);
 
   useEffect(() => {
     // Eski sürümden kalan, JavaScript'in okuyabildiği token'ı temizle
@@ -30,19 +32,30 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = useCallback((userId) => setUser({ id: userId }), []);
+  const login = useCallback((userId) => {
+    setEndReason(null);
+    setUser({ id: userId });
+  }, []);
 
   const logout = useCallback(async () => {
     try {
       await API.post("/auth/logout");
     } finally {
+      setEndReason(null);
       setUser(null);
     }
   }, []);
 
+  // Sunucu oturumu zaten kapattığında (ör. hesap silindi) yalnızca yerel durumu temizler.
+  // Nedeni saklanır; yönlendirmeyi RequireAuth buna göre yapar (zamanlamaya bağlı kalmadan).
+  const endSession = useCallback((reason = null) => {
+    setEndReason(reason);
+    setUser(null);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, isLoggedIn: Boolean(user), checking, login, logout }),
-    [user, checking, login, logout]
+    () => ({ user, isLoggedIn: Boolean(user), checking, endReason, login, logout, endSession }),
+    [user, checking, endReason, login, logout, endSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

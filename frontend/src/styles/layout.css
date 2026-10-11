@@ -120,6 +120,11 @@
   color: var(--color-primary-hover);
 }
 
+.nav-actions .is-current {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+}
+
 .nav-actions {
   display: grid;
   gap: var(--space-2);

@@ -11,6 +11,7 @@ import BlogList from "./components/BlogList";
 import BlogDetails from "./components/BlogDetails";
 import BlogEditForm from "./components/BlogEditForm";
 import AboutUs from "./components/AboutUs";
+import Account from "./components/Account";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import NotFound from "./components/NotFound";
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/blogs" element={<BlogList />} />
           <Route path="/blogs/:id" element={<BlogDetails />} />
           <Route path="/blogs/edit/:id" element={<RequireAuth><BlogEditForm /></RequireAuth>} />
+          <Route path="/account" element={<RequireAuth><Account /></RequireAuth>} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

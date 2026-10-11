@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { List, SignOut, X } from "@phosphor-icons/react";
+import { List, SignOut, UserCircle, X } from "@phosphor-icons/react";
 import Logo from "./ui/Logo";
 import ThemeToggle from "./ui/ThemeToggle";
 import { useAuth } from "../context/useAuth";
@@ -60,10 +60,19 @@ const Navbar = () => {
           <div className="nav-actions">
             {/* Oturum kontrol edilirken düğmeler bir an yanlış görünmesin */}
             {checking ? null : isLoggedIn ? (
-              <button type="button" className="btn btn-secondary btn-sm" onClick={handleLogout}>
-                <SignOut size={18} aria-hidden="true" />
-                Çıkış yap
-              </button>
+              <>
+                <NavLink
+                  to="/account"
+                  className={({ isActive }) => `btn btn-ghost btn-sm ${isActive ? "is-current" : ""}`}
+                >
+                  <UserCircle size={18} aria-hidden="true" />
+                  Hesabım
+                </NavLink>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={handleLogout}>
+                  <SignOut size={18} aria-hidden="true" />
+                  Çıkış yap
+                </button>
+              </>
             ) : (
               <>
                 <Link to="/login" className="btn btn-ghost btn-sm">
