@@ -702,6 +702,16 @@ select.input {
   color: var(--color-info-text);
 }
 
+.badge-danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
+}
+
+.badge-warning {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
 .badge-neutral {
   background: var(--color-surface-muted);
   color: var(--color-text-muted);

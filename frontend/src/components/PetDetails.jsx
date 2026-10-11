@@ -20,6 +20,7 @@ import { PageLoader } from "./ui/Loading";
 import SpeciesIcon from "./ui/SpeciesIcon";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import { capitalizeTr, formatDate, petAge, sortByDateDesc, toDateInput, todayInputValue } from "../utils/format";
+import { nextVaccineDue, VACCINE_STATUS_BADGES, vaccineStatus } from "../utils/vaccines";
 
 const startOfToday = () => {
   const d = new Date();
@@ -82,7 +83,8 @@ const PetDetails = () => {
     const activeMeds = (pet.medicationRecords || []).filter(
       (m) => !m.endDate || new Date(m.endDate) >= startOfToday()
     ).length;
-    return { latestWeight, upcoming, activeMeds };
+    const nextVaccine = nextVaccineDue(pet.vaccines);
+    return { latestWeight, upcoming, activeMeds, nextVaccine };
   }, [pet]);
 
   if (loading) return <PageLoader label="Sağlık defteri yükleniyor" />;
@@ -138,6 +140,21 @@ const PetDetails = () => {
             <dt>Devam eden ilaç</dt>
             <dd>{summary.activeMeds}</dd>
           </div>
+          <div className="stat">
+            <dt>Sıradaki aşı</dt>
+            <dd>
+              {summary.nextVaccine ? (
+                <>
+                  {formatDate(summary.nextVaccine.nextDueDate)}
+                  {vaccineStatus(summary.nextVaccine, pet.vaccines) === "overdue" && (
+                    <span className="stat-flag">Gecikti</span>
+                  )}
+                </>
+              ) : (
+                "Yok"
+              )}
+            </dd>
+          </div>
         </dl>
       </header>
 
@@ -175,6 +192,71 @@ const PetDetails = () => {
               <p className="record-text">{record.notes}</p>
             </>
           )}
+        />
+
+        {/* Aşılar */}
+        <RecordSection
+          id="vaccines"
+          icon={Syringe}
+          title="Aşılar"
+          emptyText="Henüz aşı kaydı yok."
+          addLabel="Aşıyı ekle"
+          records={sortByDateDesc(pet.vaccines, "vaccineDate")}
+          itemLabel={(v) => `${formatDate(v.vaccineDate)} tarihli ${v.vaccineName} aşı`}
+          initialValues={{ vaccineName: "", vaccineDate: today, nextDueDate: "", notes: "" }}
+          toFormValues={(v) => ({
+            vaccineName: v.vaccineName || "",
+            vaccineDate: toDateInput(v.vaccineDate),
+            nextDueDate: toDateInput(v.nextDueDate),
+            notes: v.notes || "",
+          })}
+          api={recordApi("vaccines", "vaccines")}
+          renderFields={(v, set) => (
+            <>
+              <Field id="vaccine-name" label="Aşı adı" hint="Örn. Kuduz, Karma, Lösemi" required>
+                <input type="text" className="input" value={v.vaccineName} onChange={set("vaccineName")} />
+              </Field>
+              <div className="form-grid form-grid-2">
+                <Field id="vaccine-date" label="Uygulama tarihi" required>
+                  <input
+                    type="date"
+                    className="input"
+                    value={v.vaccineDate}
+                    max={today}
+                    onChange={set("vaccineDate")}
+                  />
+                </Field>
+                <Field id="vaccine-due" label="Tekrar tarihi" hint="Veterinerin önerdiği rapel tarihi" optional>
+                  <input
+                    type="date"
+                    className="input"
+                    value={v.nextDueDate}
+                    min={v.vaccineDate || undefined}
+                    onChange={set("nextDueDate")}
+                  />
+                </Field>
+              </div>
+              <Field id="vaccine-notes" label="Not" hint="Örn. aşı markası, seri no, yan etki" optional>
+                <textarea className="input" rows={2} value={v.notes} onChange={set("notes")} />
+              </Field>
+            </>
+          )}
+          renderRecord={(vaccine) => {
+            const badge = VACCINE_STATUS_BADGES[vaccineStatus(vaccine, pet.vaccines)];
+            return (
+              <>
+                <div className="record-title-row">
+                  <strong>{vaccine.vaccineName}</strong>
+                  {badge && <span className={`badge ${badge.className}`}>{badge.label}</span>}
+                </div>
+                <p className="record-meta">
+                  Yapıldı: {formatDate(vaccine.vaccineDate)}
+                  {vaccine.nextDueDate && ` · Tekrar: ${formatDate(vaccine.nextDueDate)}`}
+                </p>
+                {vaccine.notes && <p className="record-meta">{vaccine.notes}</p>}
+              </>
+            );
+          }}
         />
 
         {/* Kilo geçmişi */}
@@ -406,24 +488,6 @@ const PetDetails = () => {
             </>
           )}
         />
-
-        {/* Aşılar: yalnızca kayıt varsa gösterilir (arayüzden eklenmez, salt okunur) */}
-        {pet.vaccines?.length > 0 && (
-          <RecordSection
-            id="vaccines"
-            icon={Syringe}
-            title="Aşılar"
-            records={sortByDateDesc(pet.vaccines, "vaccineDate")}
-            renderRecord={(vaccine) => (
-              <div className="record-row">
-                <strong>{vaccine.vaccineName}</strong>
-                <time className="record-date" dateTime={vaccine.vaccineDate}>
-                  {formatDate(vaccine.vaccineDate)}
-                </time>
-              </div>
-            )}
-          />
-        )}
       </div>
 
       <Alert type="info" className="mt-6">

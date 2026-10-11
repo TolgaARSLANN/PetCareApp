@@ -118,6 +118,49 @@ describe('record edit and delete routes', () => {
     expect(res.status).toBe(404);
   });
 
+  test('add a vaccine', async () => {
+    const userId = newId();
+    const { pet } = mockPet(userId);
+
+    const res = await request(app)
+      .post(`/api/pets/${pet._id}/vaccines`)
+      .set('Authorization', `Bearer ${tokenFor(userId)}`)
+      .send({ vaccineName: '  Kuduz ', vaccineDate: '2026-09-01', nextDueDate: '2027-09-01', notes: 'Sol omuz' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].vaccineName).toBe('Kuduz');
+    expect(res.body[0].nextDueDate).toBe('2027-09-01T00:00:00.000Z');
+  });
+
+  test('a vaccine without a name or date is rejected', async () => {
+    const userId = newId();
+    const { pet } = mockPet(userId);
+
+    const res = await request(app)
+      .post(`/api/pets/${pet._id}/vaccines`)
+      .set('Authorization', `Bearer ${tokenFor(userId)}`)
+      .send({ vaccineName: 'Kuduz' });
+
+    expect(res.status).toBe(400);
+  });
+
+  test('edit a vaccine and clear its due date', async () => {
+    const userId = newId();
+    const { pet } = mockPet(userId, {
+      vaccines: [{ vaccineName: 'Karma', vaccineDate: '2026-01-10', nextDueDate: '2027-01-10' }],
+    });
+
+    const res = await request(app)
+      .put(`/api/pets/${pet._id}/vaccines/${pet.vaccines[0]._id}`)
+      .set('Authorization', `Bearer ${tokenFor(userId)}`)
+      .send({ vaccineName: 'Karma (DHPPi)', nextDueDate: '' });
+
+    expect(res.status).toBe(200);
+    expect(res.body[0].vaccineName).toBe('Karma (DHPPi)');
+    expect(res.body[0].nextDueDate).toBeUndefined();
+  });
+
   test('require a token', async () => {
     const res = await request(app).delete(`/api/pets/${newId()}/weight/${newId()}`);
     expect(res.status).toBe(401);

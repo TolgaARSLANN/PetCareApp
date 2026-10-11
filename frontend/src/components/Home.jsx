@@ -19,7 +19,7 @@ const FEATURES = [
   {
     icon: FirstAidKit,
     title: "Sağlık kayıtları",
-    text: "Veteriner ziyaretlerini ve sağlık notlarını tarih sırasıyla saklayın.",
+    text: "Veteriner ziyaretlerini, aşıları ve tekrar tarihlerini tek yerde saklayın.",
   },
   {
     icon: Scales,
