@@ -7,23 +7,34 @@ import API from "../services/api";
 import { AuthProvider } from "../context/AuthContext";
 import { useAuth } from "../context/useAuth";
 import Login from "./Login";
+import { GuestOnly } from "./RouteGuards";
 
 vi.mock("../services/api", () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
 const WhoAmI = () => <p>Kullanıcı: {useAuth().user?.id}</p>;
 
-const renderLogin = (state) => {
+// GuestOnly önce oturumu kontrol eder; form ondan sonra görünür
+const renderLogin = async (state) => {
   render(
     <AuthProvider>
       <MemoryRouter initialEntries={[{ pathname: "/login", state }]}>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          {/* Uygulamadaki gibi GuestOnly ile: giriş anındaki yönlendirmesi Login'inkiyle çakışmamalı */}
+          <Route
+            path="/login"
+            element={
+              <GuestOnly>
+                <Login />
+              </GuestOnly>
+            }
+          />
           <Route path="/pets" element={<WhoAmI />} />
           <Route path="/pets/p1" element={<p>Pamuk sayfası</p>} />
         </Routes>
       </MemoryRouter>
     </AuthProvider>
   );
+  await screen.findByRole("button", { name: "Giriş yap" });
 };
 
 const fillAndSubmit = async (user) => {
@@ -42,7 +53,7 @@ describe("Login", () => {
   test("starts the session and goes to the pets page without storing a token", async () => {
     const user = userEvent.setup();
     vi.mocked(API.post).mockResolvedValue({ data: { userId: "u1" } });
-    renderLogin();
+    await renderLogin();
 
     await fillAndSubmit(user);
 
@@ -55,7 +66,7 @@ describe("Login", () => {
   test("returns to the page that required login", async () => {
     const user = userEvent.setup();
     vi.mocked(API.post).mockResolvedValue({ data: { userId: "u1" } });
-    renderLogin({ from: "/pets/p1" });
+    await renderLogin({ from: "/pets/p1" });
 
     await fillAndSubmit(user);
 
@@ -65,7 +76,7 @@ describe("Login", () => {
   test("explains wrong credentials", async () => {
     const user = userEvent.setup();
     vi.mocked(API.post).mockRejectedValue({ response: { status: 400 } });
-    renderLogin();
+    await renderLogin();
 
     await fillAndSubmit(user);
 
@@ -75,7 +86,7 @@ describe("Login", () => {
   test("explains the attempt limit", async () => {
     const user = userEvent.setup();
     vi.mocked(API.post).mockRejectedValue({ response: { status: 429 } });
-    renderLogin();
+    await renderLogin();
 
     await fillAndSubmit(user);
 
@@ -85,16 +96,31 @@ describe("Login", () => {
   test("explains when the server cannot be reached", async () => {
     const user = userEvent.setup();
     vi.mocked(API.post).mockRejectedValue(new Error("Network Error"));
-    renderLogin();
+    await renderLogin();
 
     await fillAndSubmit(user);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sunucuya ulaşılamadı");
   });
 
+  test("explains why the session ended", async () => {
+    await renderLogin({ from: "/pets", reason: "sessionEnded" });
+    expect(await screen.findByText(/Oturumunuz sona erdi/)).toBeInTheDocument();
+  });
+
+  test("confirms that every device was signed out", async () => {
+    await renderLogin({ from: "/account", reason: "signedOutEverywhere" });
+    expect(await screen.findByText(/Tüm cihazlardaki oturumlarınız kapatıldı/)).toBeInTheDocument();
+  });
+
+  test("shows no session notice on a normal visit", async () => {
+    await renderLogin({ from: "/pets", reason: null });
+    expect(screen.queryByText(/Oturumunuz sona erdi|oturumlarınız kapatıldı/)).not.toBeInTheDocument();
+  });
+
   test("lets the user show the password", async () => {
     const user = userEvent.setup();
-    renderLogin();
+    await renderLogin();
     const password = screen.getByLabelText(/Parola/, { selector: "input" });
     expect(password).toHaveAttribute("type", "password");
 

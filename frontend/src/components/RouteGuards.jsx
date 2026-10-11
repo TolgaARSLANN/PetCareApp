@@ -13,14 +13,18 @@ export const RequireAuth = ({ children }) => {
   if (!isLoggedIn && endReason === "accountDeleted") {
     return <Navigate to="/" replace state={{ accountDeleted: true }} />;
   }
-  if (!isLoggedIn) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  // Oturum bu sayfadayken kapandıysa giriş sayfası nedenini açıklar
+  if (!isLoggedIn) return <Navigate to="/login" replace state={{ from: location.pathname, reason: endReason }} />;
   return children;
 };
 
-// Giriş ve kayıt sayfaları: zaten giriş yapılmışsa evcil dostlar sayfasına gider
+// Giriş ve kayıt sayfaları: zaten giriş yapılmışsa evcil dostlar sayfasına gider.
+// Giriş anında da bu yönlendirme çalışır; korumalı bir sayfadan gelindiyse oraya dönülür
+// (Login'in kendi yönlendirmesiyle aynı hedef, yoksa hangisinin önce işlendiğine göre değişir).
 export const GuestOnly = ({ children }) => {
   const { isLoggedIn, checking } = useAuth();
+  const location = useLocation();
   if (checking) return <PageLoader label="Oturum kontrol ediliyor" />;
-  if (isLoggedIn) return <Navigate to="/pets" replace />;
+  if (isLoggedIn) return <Navigate to={location.state?.from || "/pets"} replace />;
   return children;
 };

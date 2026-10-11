@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const bcrypt = require('bcrypt');
 const app = require('../app');
@@ -49,6 +50,19 @@ describe('PUT /api/auth/password', () => {
     expect(await bcrypt.compare('new-secret', user.password)).toBe(true);
     expect(user.save).toHaveBeenCalled();
     expect(res.headers['set-cookie'].some((c) => c.startsWith('token=') && /HttpOnly/i.test(c))).toBe(true);
+  });
+
+  test('signs out other devices: bumps the session version and issues a token with the new one', async () => {
+    const userId = newId();
+    const user = await mockUser(userId);
+    expect(user.tokenVersion).toBe(0);
+
+    const res = await change(userId, { currentPassword: 'correct', newPassword: 'new-secret' });
+
+    expect(user.tokenVersion).toBe(1);
+    const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
+    const token = cookie.split(';')[0].slice('token='.length);
+    expect(jwt.verify(token, process.env.JWT_SECRET).tv).toBe(1);
   });
 
   test('rejects a wrong current password without changing anything', async () => {

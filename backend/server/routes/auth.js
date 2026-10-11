@@ -27,8 +27,11 @@ function validateCredentials(email, password) {
 
 // Signs a token and puts it in an httpOnly cookie that expires together with the token.
 // The token is never returned in the body, so page scripts never see it.
-function startSession(res, userId) {
-  const token = jwt.sign({ userId }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+// "tv" is the user's session version; the token stops working once it is bumped.
+function startSession(res, user) {
+  const token = jwt.sign({ userId: user._id, tv: user.tokenVersion || 0 }, config.jwtSecret, {
+    expiresIn: config.jwtExpiresIn,
+  });
   const { exp } = jwt.decode(token);
   res.cookie(AUTH_COOKIE, token, { ...cookieOptions, expires: new Date(exp * 1000) });
 }
@@ -68,7 +71,7 @@ router.post('/login', authLimiter, async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: 'Invalid credentials' });
 
-    startSession(res, user._id);
+    startSession(res, user);
     res.json({ userId: String(user._id) });
   } catch (error) {
     console.error('Error logging in:', error);
@@ -78,15 +81,33 @@ router.post('/login', authLimiter, async (req, res) => {
 
 // Oturum kontrolü: giriş yapan kullanıcının ID'si, oturum yoksa null.
 // Ziyaretçi için de 200 döner; "kimse" geçerli bir cevaptır (her sayfa açılışında 401 hatası üretmez).
-router.get('/me', (req, res) => {
-  const userId = getUserId(req);
-  res.json({ userId: userId ? String(userId) : null });
+router.get('/me', async (req, res) => {
+  try {
+    const userId = await getUserId(req);
+    res.json({ userId: userId ? String(userId) : null });
+  } catch (error) {
+    console.error('Error checking session:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Çıkış: oturum çerezini siler
 router.post('/logout', (req, res) => {
   res.clearCookie(AUTH_COOKIE, cookieOptions);
   res.status(204).end();
+});
+
+// Tüm cihazlardan çıkış: oturum sürümü artırılır, böylece bu hesaba verilmiş tüm token'lar
+// (bu cihazınki dahil) geçersiz olur.
+router.post('/logout-all', authMiddleware, async (req, res) => {
+  try {
+    await User.updateOne({ _id: req.userId }, { $inc: { tokenVersion: 1 } });
+    res.clearCookie(AUTH_COOKIE, cookieOptions);
+    res.status(204).end();
+  } catch (error) {
+    console.error('Error signing out everywhere:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Hesap bilgisi: e-posta ve hesaba bağlı kayıt sayıları (hesap silme uyarısında gösterilir)
@@ -106,7 +127,8 @@ router.get('/account', authMiddleware, async (req, res) => {
 });
 
 // Parola değiştirme: mevcut parola doğrulanır. Başarısız denemeler giriş sınırına sayılır
-// (çalınmış bir oturumla parola tahmin edilemesin). Bu oturum yeni bir token ile sürer.
+// (çalınmış bir oturumla parola tahmin edilemesin). Oturum sürümü artırıldığı için diğer
+// cihazlardaki oturumlar kapanır; bu oturum yeni sürümle verilen token ile sürer.
 router.put('/password', authLimiter, authMiddleware, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -127,8 +149,9 @@ router.put('/password', authLimiter, authMiddleware, async (req, res) => {
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
-    startSession(res, user._id);
+    startSession(res, user);
     res.json({ message: 'Password changed' });
   } catch (error) {
     console.error('Error changing password:', error);

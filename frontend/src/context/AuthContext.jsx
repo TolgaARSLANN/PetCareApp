@@ -7,7 +7,8 @@ import { AuthContext } from "./useAuth";
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // { id } | null
   const [checking, setChecking] = useState(true);
-  // Oturum neden kapandı: "accountDeleted" ise korumalı sayfalar girişe değil ana sayfaya yönlendirir
+  // Oturum neden kapandı; korumalı sayfalar yönlendirirken bunu kullanır (bkz. RouteGuards):
+  // "accountDeleted" → ana sayfa, "sessionEnded" / "signedOutEverywhere" → açıklamalı giriş sayfası
   const [endReason, setEndReason] = useState(null);
 
   useEffect(() => {
@@ -24,7 +25,11 @@ export const AuthProvider = ({ children }) => {
       .catch(() => !cancelled && setUser(null))
       .finally(() => !cancelled && setChecking(false));
 
-    const onExpired = () => setUser(null);
+    // Sunucu oturumu reddetti: süresi doldu ya da başka bir cihazdan kapatıldı (parola değişimi vb.)
+    const onExpired = () => {
+      setEndReason("sessionEnded");
+      setUser(null);
+    };
     window.addEventListener("auth:expired", onExpired);
     return () => {
       cancelled = true;

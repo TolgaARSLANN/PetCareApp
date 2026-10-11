@@ -9,6 +9,12 @@ import { Spinner } from "./ui/Loading";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useAuth } from "../context/useAuth";
 
+// Korumalı bir sayfadayken oturum kapandıysa nedenini açıklayan mesajlar (RequireAuth iletir)
+const SESSION_NOTICES = {
+  sessionEnded: "Oturumunuz sona erdi. Devam etmek için lütfen tekrar giriş yapın.",
+  signedOutEverywhere: "Tüm cihazlardaki oturumlarınız kapatıldı. Devam etmek için tekrar giriş yapın.",
+};
+
 const Login = () => {
   useDocumentTitle("Giriş yap");
   const { login } = useAuth();
@@ -56,6 +62,9 @@ const Login = () => {
     >
       {location.state?.registered && !error && (
         <Alert type="success">Kaydınız tamamlandı. Şimdi giriş yapabilirsiniz.</Alert>
+      )}
+      {SESSION_NOTICES[location.state?.reason] && !error && (
+        <Alert type="info">{SESSION_NOTICES[location.state.reason]}</Alert>
       )}
       {error && <Alert type="error">{error}</Alert>}
       <form onSubmit={handleSubmit} className="form-stack">

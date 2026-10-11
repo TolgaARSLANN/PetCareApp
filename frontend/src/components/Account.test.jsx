@@ -10,6 +10,7 @@ import { RequireAuth } from "./RouteGuards";
 
 vi.mock("../services/api", () => ({ default: { get: vi.fn(), put: vi.fn(), delete: vi.fn(), post: vi.fn() } }));
 
+const LoginProbe = () => <p>Giriş sayfası: {useLocation().state?.reason}</p>;
 const HomeProbe = () => <p>Ana sayfa {useLocation().state?.accountDeleted ? "(silindi)" : ""}</p>;
 
 const renderAccount = async () => {
@@ -19,7 +20,7 @@ const renderAccount = async () => {
         <Routes>
           {/* Uygulamadaki gibi giriş korumasıyla: silme sonrası yönlendirme bununla çakışmamalı */}
           <Route path="/account" element={<RequireAuth><Account /></RequireAuth>} />
-          <Route path="/login" element={<p>Giriş sayfası</p>} />
+          <Route path="/login" element={<LoginProbe />} />
           <Route path="/" element={<HomeProbe />} />
         </Routes>
       </MemoryRouter>
@@ -59,7 +60,9 @@ describe("Account", () => {
     await user.click(screen.getByRole("button", { name: "Parolayı değiştir" }));
 
     expect(API.put).toHaveBeenCalledWith("/auth/password", { currentPassword: "old-pass", newPassword: "new-pass" });
-    expect(await screen.findByText("Parolanız değiştirildi.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Parolanız değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.")
+    ).toBeInTheDocument();
     expect(input(/Mevcut parola/)).toHaveValue("");
   });
 
@@ -88,6 +91,19 @@ describe("Account", () => {
     await user.click(screen.getByRole("button", { name: "Parolayı değiştir" }));
 
     expect(await screen.findByText("Mevcut parola hatalı.")).toBeInTheDocument();
+  });
+
+  test("signs out everywhere after confirmation and explains it on the login page", async () => {
+    const user = userEvent.setup();
+    vi.mocked(API.post).mockReset().mockResolvedValue({});
+    await renderAccount();
+
+    await user.click(screen.getByRole("button", { name: "Tüm cihazlardan çıkış yap" }));
+    expect(API.post).not.toHaveBeenCalled();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Evet, çıkış yap" }));
+
+    expect(API.post).toHaveBeenCalledWith("/auth/logout-all");
+    expect(await screen.findByText("Giriş sayfası: signedOutEverywhere")).toBeInTheDocument();
   });
 
   test("deletes the account after confirmation and goes home", async () => {
