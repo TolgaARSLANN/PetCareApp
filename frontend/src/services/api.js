@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const API = axios.create({
-  // Deploy ederken frontend/.env içinde REACT_APP_API_URL tanımlayın
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api",
+  // Deploy ederken frontend/.env içinde VITE_API_URL tanımlayın
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
 });
 
 // Her istekte token göndermek için interceptor
