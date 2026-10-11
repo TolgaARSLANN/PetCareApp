@@ -33,6 +33,22 @@ const SIGNIFICANT_WEIGHT_CHANGE = 0.1;
 const normalizeSpecies = (species) =>
   typeof species === 'string' ? species.trim().toLocaleLowerCase('tr-TR') : '';
 
+// Kayıtları tarihe göre eskiden yeniye sıralar. Kayıtlar her zaman tarih sırasıyla
+// eklenmez (geçmişe dönük giriş, sonradan tarih düzenleme), bu yüzden "son" kayıt
+// listenin sonundaki değil en yeni tarihli olandır. Tarihi olmayan kayıtlar en eski sayılır;
+// sıralama kararlı olduğu için eşit tarihlilerde eklenme sırası korunur.
+const byDateAsc = (records = []) => {
+  const time = (r) => {
+    const t = new Date(r.date).getTime();
+    return r.date && !Number.isNaN(t) ? t : -Infinity;
+  };
+  return [...records].sort((a, b) => {
+    const ta = time(a);
+    const tb = time(b);
+    return ta === tb ? 0 : ta < tb ? -1 : 1;
+  });
+};
+
 function getRecommendations(pet) {
   const recommendations = [];
   const species = normalizeSpecies(pet.species);
@@ -43,7 +59,7 @@ function getRecommendations(pet) {
   }
 
   // Kilo durumuna göre öneriler (ağırlıklar kg cinsindendir)
-  const weights = (pet.weightHistory || []).filter((w) => typeof w.weight === 'number');
+  const weights = byDateAsc(pet.weightHistory).filter((w) => typeof w.weight === 'number');
   if (weights.length === 0) {
     recommendations.push('Düzenli Ağırlık Takibi için Dijital Tartı');
   } else {
@@ -67,7 +83,7 @@ function getRecommendations(pet) {
 
   // Sağlık kayıtlarına göre öneriler
   if (pet.healthRecords && pet.healthRecords.length > 0) {
-    const latestRecord = pet.healthRecords[pet.healthRecords.length - 1];
+    const latestRecord = byDateAsc(pet.healthRecords).at(-1);
     recommendations.push(`Son sağlık kontrolü notlarına dikkat edin: ${latestRecord.notes}`);
   } else {
     recommendations.push('Düzenli Sağlık Kontrolleri Planlayın');

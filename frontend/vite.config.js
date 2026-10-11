@@ -7,4 +7,9 @@ export default defineConfig({
   server: { port: 3000 },
   preview: { port: 3000 },
   build: { outDir: "build" },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.js"],
+    include: ["src/**/*.test.{js,jsx}"],
+  },
 });

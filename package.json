@@ -8,7 +8,7 @@
     "setup": "npm install && npm --prefix backend/server install && npm --prefix frontend install",
     "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm --prefix backend/server run dev\" \"npm --prefix frontend run dev\"",
     "start": "concurrently -k -n backend,frontend -c blue,magenta \"npm --prefix backend/server start\" \"npm --prefix frontend run dev\"",
-    "test": "npm --prefix backend/server test",
+    "test": "npm --prefix backend/server test && npm --prefix frontend test",
     "build": "npm --prefix frontend run build"
   },
   "devDependencies": {
