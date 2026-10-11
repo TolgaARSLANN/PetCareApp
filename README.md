@@ -73,6 +73,7 @@ PetCareApp/
 │       ├── styles/
 │       └── App.jsx               # Routes
 │
+├── package.json                  # Root scripts: setup, dev, start, test, build
 ├── LICENSE
 └── README.md
 ```
@@ -92,6 +93,28 @@ PetCareApp/
 git clone https://github.com/TolgaARSLANN/PetCareApp.git
 cd PetCareApp
 ```
+
+### Quick start
+
+From the repository root:
+
+```bash
+npm run setup                                   # installs root, backend and frontend dependencies
+cp backend/server/.env.example backend/server/.env   # then set JWT_SECRET (see below)
+npm run dev                                     # starts the API and the frontend together
+```
+
+The app opens at `http://localhost:3000` and the API runs at `http://localhost:5000`. Press `Ctrl+C` once to stop both.
+
+| Root script | What it does |
+|---|---|
+| `npm run setup` | Installs dependencies in the root, `backend/server` and `frontend` |
+| `npm run dev` | Backend (restarts on file changes) + frontend dev server |
+| `npm start` | Backend without file watching + frontend dev server |
+| `npm test` | Backend tests |
+| `npm run build` | Frontend production build |
+
+The sections below describe running each part on its own.
 
 ### 2. Backend
 
