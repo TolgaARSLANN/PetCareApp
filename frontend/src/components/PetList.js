@@ -23,10 +23,10 @@ const PetList = () => {
 
   // Pet silme işlemi
   const handleDelete = async (id) => {
+    if (!window.confirm("Bu evcil dostu silmek istediğinize emin misiniz?")) return;
     try {
       await API.delete(`/pets/${id}`);
       setPets(pets.filter((pet) => pet._id !== id)); // Listeden kaldır
-      alert("Pet deleted successfully!");
     } catch (error) {
       console.error(error);
     }

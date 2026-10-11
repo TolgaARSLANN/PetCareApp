@@ -8,7 +8,8 @@ const PetDetails = () => {
   const { id } = useParams(); // URL'den pet ID'sini al
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // Sayfa yüklenemezse
+  const [formError, setFormError] = useState(null); // Form ekleme hataları
 
   // Sağlık kaydı eklemek için kullanılan state
   const [newHealthRecord, setNewHealthRecord] = useState({ date: "", notes: "" });
@@ -34,22 +35,7 @@ const PetDetails = () => {
     location: "",
   });
 
-  // 4. Bakım Takvimi için state
-  const [newGrooming, setNewGrooming] = useState({
-    date: "",
-    type: "",
-    notes: "",
-  });
-
-  // 5. Aktivite Kayıtları için state
-  const [newActivity, setNewActivity] = useState({
-    date: "",
-    type: "",
-    duration: "",
-    notes: "",
-  });
-
-  // 6. Acil Durum Kontakları için state
+  // 4. Acil Durum Kontakları için state
   const [newEmergencyContact, setNewEmergencyContact] = useState({
     name: "",
     relationship: "",
@@ -64,7 +50,7 @@ const PetDetails = () => {
         const { data } = await API.get(`/pets/${id}`);
         setPet(data);
       } catch (err) {
-        setError("Failed to load pet details. Please try again.");
+        setError("Evcil hayvan bilgileri yüklenemedi. Lütfen tekrar deneyin.");
         console.error("Error fetching pet details:", err);
       } finally {
         setLoading(false);
@@ -76,19 +62,21 @@ const PetDetails = () => {
   // Sağlık kaydı ekleme
   const handleAddHealthRecord = async (e) => {
     e.preventDefault();
+    setFormError(null);
     try {
       const { data } = await API.post(`/pets/${id}/health-records`, newHealthRecord);
       setPet(data); // Yeni sağlık kaydını güncelle
       setNewHealthRecord({ date: "", notes: "" }); // Formu sıfırla
     } catch (err) {
       console.error("Error adding health record:", err);
-      setError("Failed to add health record. Please try again.");
+      setFormError("Sağlık kaydı eklenemedi. Lütfen tekrar deneyin.");
     }
   };
 
   // 1. Ağırlık Takibi Ekleme
   const handleAddWeight = async (e) => {
     e.preventDefault();
+    setFormError(null);
     try {
       const { data } = await API.post(`/pets/${id}/weight`, newWeight);
       // data, pet.weightHistory dizisini döndürecek şekilde backend tarafında ayarlandı
@@ -96,13 +84,14 @@ const PetDetails = () => {
       setNewWeight({ date: "", weight: "" });
     } catch (err) {
       console.error("Error adding weight record:", err);
-      setError("Failed to add weight record. Please try again.");
+      setFormError("Ağırlık kaydı eklenemedi. Lütfen tekrar deneyin.");
     }
   };
 
   // 2. Yeni İlaç Kaydı Ekleme
   const handleAddMedication = async (e) => {
     e.preventDefault();
+    setFormError(null);
     try {
       const { data } = await API.post(`/pets/${id}/medications`, newMedication);
       setPet({ ...pet, medicationRecords: data });
@@ -116,13 +105,14 @@ const PetDetails = () => {
       });
     } catch (err) {
       console.error("Error adding medication record:", err);
-      setError("Failed to add medication record. Please try again.");
+      setFormError("İlaç kaydı eklenemedi. Lütfen tekrar deneyin.");
     }
   };
 
   // 3. Yeni Randevu Ekleme
   const handleAddAppointment = async (e) => {
     e.preventDefault();
+    setFormError(null);
     try {
       const { data } = await API.post(`/pets/${id}/appointments`, newAppointment);
       setPet({ ...pet, appointments: data });
@@ -134,48 +124,14 @@ const PetDetails = () => {
       });
     } catch (err) {
       console.error("Error adding appointment:", err);
-      setError("Failed to add appointment. Please try again.");
+      setFormError("Randevu eklenemedi. Lütfen tekrar deneyin.");
     }
   };
 
-  // 4. Yeni Bakım Kaydı Ekleme
-  const handleAddGrooming = async (e) => {
-    e.preventDefault();
-    try {
-      const { data } = await API.post(`/pets/${id}/grooming`, newGrooming);
-      setPet({ ...pet, groomingSchedule: data });
-      setNewGrooming({
-        date: "",
-        type: "",
-        notes: "",
-      });
-    } catch (err) {
-      console.error("Error adding grooming record:", err);
-      setError("Failed to add grooming record. Please try again.");
-    }
-  };
-
-  // 5. Yeni Aktivite Kaydı Ekleme
-  const handleAddActivity = async (e) => {
-    e.preventDefault();
-    try {
-      const { data } = await API.post(`/pets/${id}/activity`, newActivity);
-      setPet({ ...pet, activityLogs: data });
-      setNewActivity({
-        date: "",
-        type: "",
-        duration: "",
-        notes: "",
-      });
-    } catch (err) {
-      console.error("Error adding activity log:", err);
-      setError("Failed to add activity log. Please try again.");
-    }
-  };
-
-  // 6. Yeni Acil Durum Kontağı Ekleme
+  // 4. Yeni Acil Durum Kontağı Ekleme
   const handleAddEmergencyContact = async (e) => {
     e.preventDefault();
+    setFormError(null);
     try {
       const { data } = await API.post(`/pets/${id}/emergency-contact`, newEmergencyContact);
       setPet({ ...pet, emergencyContacts: data });
@@ -187,33 +143,36 @@ const PetDetails = () => {
       });
     } catch (err) {
       console.error("Error adding emergency contact:", err);
-      setError("Failed to add emergency contact. Please try again.");
+      setFormError("Acil durum kişisi eklenemedi. Lütfen tekrar deneyin.");
     }
   };
 
   // Yükleniyor / Hata / Pet Bulunamadı durumları
   if (loading) {
-    return <p className="loading-message">Loading pet details...</p>;
+    return <p className="loading-message">Yükleniyor...</p>;
   }
   if (error) {
     return <p className="error-message">{error}</p>;
   }
   if (!pet) {
-    return <p className="no-pet-message">No pet found. Please try again.</p>;
+    return <p className="no-pet-message">Evcil hayvan bulunamadı.</p>;
   }
 
   return (
     <div className="pet-details">
       <h2>{pet.name}</h2>
+      {formError && (
+        <div className="alert alert-danger d-flex justify-content-between align-items-center">
+          <span>{formError}</span>
+          <button type="button" className="btn-close" aria-label="Kapat" onClick={() => setFormError(null)} />
+        </div>
+      )}
       <p>
         <strong>Tür:</strong> {pet.species}
       </p>
       <p>
         <strong>Doğum Tarihi:</strong>{" "}
-        {pet.birthDate ? new Date(pet.birthDate).toLocaleDateString() : "N/A"}
-      </p>
-      <p>
-        <strong>Notlar:</strong> {pet.notes || "Henüz not eklenmedi."}
+        {pet.birthDate ? new Date(pet.birthDate).toLocaleDateString() : "-"}
       </p>
 
       {/* PetRecommendations Component'i */}
@@ -222,14 +181,14 @@ const PetDetails = () => {
       {/* ==================== VACCINES ==================== */}
       {pet.vaccines && pet.vaccines.length > 0 && (
         <div>
-          <h3>Vaccines:</h3>
+          <h3>Aşılar:</h3>
           <ul>
             {pet.vaccines.map((vaccine, index) => (
               <li key={index}>
                 {vaccine.vaccineName} - (
                 {vaccine.vaccineDate
                   ? new Date(vaccine.vaccineDate).toLocaleDateString()
-                  : "N/A"}
+                  : "-"}
                 )
               </li>
             ))}
@@ -280,7 +239,7 @@ const PetDetails = () => {
         <ul>
           {pet.weightHistory.map((w, index) => (
             <li key={index}>
-              {w.date ? new Date(w.date).toLocaleDateString() : "N/A"} -{" "}
+              {w.date ? new Date(w.date).toLocaleDateString() : "-"} -{" "}
               {w.weight} kg
             </li>
           ))}
@@ -392,8 +351,8 @@ const PetDetails = () => {
               <strong>
                 {app.date
                   ? new Date(app.date).toLocaleDateString()
-                  : "No Date"}{" "}
-                - {app.time || "No Time"}
+                  : "Tarih yok"}{" "}
+                - {app.time || "Saat yok"}
               </strong>
               {app.reason && ` (${app.reason})`}
               {app.location && ` @ ${app.location}`}

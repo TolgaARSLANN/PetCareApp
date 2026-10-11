@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import PetList from "./components/PetList";
@@ -12,13 +12,8 @@ import Register from "./components/Register";
 import "./styles/Homepage.css";
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Kullanıcı oturumunu kontrol et
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token); // Eğer token varsa giriş yapılmış demektir
-  }, []);
+  // Oturum durumu ilk render'da okunur; böylece sayfa yenilenince login'e kısa yönlendirme olmaz
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
 
   return (
     <Router>
@@ -49,7 +44,7 @@ const App = () => {
         <Route path="/pets/:id" element={isLoggedIn ? <PetDetails /> : <Navigate to="/login" />} />
         <Route path="/blogs" element={<BlogList />} /> {/* Blog listesi rotası */}
         <Route path="/blogs/:id" element={<BlogDetails />} /> {/* Blog detayları rotası */}
-        <Route path="/blogs/edit/:id" element={<BlogEditForm />} /> {/* Blog düzenleme rotası */}
+        <Route path="/blogs/edit/:id" element={isLoggedIn ? <BlogEditForm /> : <Navigate to="/login" />} /> {/* Blog düzenleme rotası */}
         <Route path="/about-us" element={<AboutUs />} /> {/* About Us rotası */}
       </Routes>
     </Router>

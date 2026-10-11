@@ -14,14 +14,14 @@ const BlogForm = ({ refreshBlogs }) => {
     e.preventDefault();
     try {
       if (!title || !content || !author) {
-        setError("Please fill in all required fields!");
+        setError("Lütfen tüm zorunlu alanları doldurun.");
         return;
       }
 
       const blogData = { title, content, author, image };
       await API.post("/blogs", blogData);
 
-      setSuccess("Blog added successfully!");
+      setSuccess("Yazı eklendi.");
       setTitle("");
       setContent("");
       setAuthor("");
@@ -32,7 +32,7 @@ const BlogForm = ({ refreshBlogs }) => {
         refreshBlogs(); // Blog listesi yenilenecek
       }
     } catch (err) {
-      setError("Failed to add blog. Please try again.");
+      setError("Yazı eklenemedi. Lütfen tekrar deneyin.");
     }
   };
 

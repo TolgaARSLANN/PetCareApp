@@ -15,7 +15,7 @@ const BlogDetails = () => {
         const { data } = await API.get(`/blogs/${id}`);
         setBlog(data);
       } catch (error) {
-        setError("Failed to fetch blog details. Please try again later.");
+        setError("Yazı yüklenemedi. Lütfen daha sonra tekrar deneyin.");
         console.error("Error fetching blog details:", error);
       } finally {
         setLoading(false);
@@ -34,14 +34,14 @@ const BlogDetails = () => {
   }
 
   if (!blog) {
-    return <p className="no-blog-message">Blog not found.</p>;
+    return <p className="no-blog-message">Yazı bulunamadı.</p>;
   }
 
   return (
     <div className="blog-details">
       <h2 className="blog-title">{blog.title}</h2>
       <p className="blog-author">
-        <strong>Yazar:</strong> {blog.author || "Unknown"}
+        <strong>Yazar:</strong> {blog.author || "Bilinmiyor"}
       </p>
       <p className="blog-date">
         <strong>Tarih:</strong> {new Date(blog.date || blog.createdAt).toLocaleDateString()}

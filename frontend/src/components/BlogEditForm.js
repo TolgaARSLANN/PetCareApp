@@ -25,7 +25,7 @@ const BlogEditForm = () => {
         setImage(data.image || "");
       } catch (err) {
         console.error("Error fetching blog details:", err);
-        setError("Failed to fetch blog details.");
+        setError("Yazı yüklenemedi.");
       }
     };
     fetchBlog();
@@ -36,7 +36,7 @@ const BlogEditForm = () => {
     try {
       const updatedBlog = { title, content, author, image };
       await API.put(`/blogs/${id}`, updatedBlog);
-      setSuccess("Blog updated successfully!");
+      setSuccess("Yazı güncellendi.");
       setError("");
 
       // Yönlendirme
@@ -45,7 +45,7 @@ const BlogEditForm = () => {
       }, 2000);
     } catch (err) {
       console.error("Error updating blog:", err);
-      setError("Failed to update the blog. Please try again.");
+      setError("Yazı güncellenemedi. Lütfen tekrar deneyin.");
     }
   };
 

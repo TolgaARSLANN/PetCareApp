@@ -1,9 +1,19 @@
 // server/routes/pets.js
 
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Pet = require('../models/Pet');
 const authMiddleware = require('../middleware/authMiddleware');
+const { getRecommendations } = require('../services/recommendations');
+
+// Geçersiz bir ID gelirse Mongoose CastError (500) yerine 404 dön
+router.param('id', (req, res, next, id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(404).json({ error: 'Pet not found or unauthorized' });
+  }
+  next();
+});
 
 // 1. Yeni Pet Ekleme (POST)
 router.post('/', authMiddleware, async (req, res) => {
@@ -264,79 +274,11 @@ router.get('/:id/recommendations', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Pet not found or unauthorized' });
     }
 
-    const recommendations = [];
-
-    // Pet türüne göre öneriler
-    if (pet.species === 'kedi') {
-      recommendations.push(
-        'Tüy Toplama Tarağı',
-        'Kedi Oyuncağı',
-        'Tüy Dökülmesini Azaltan Özel Kedi Mamaları',
-        'Kedi Tırmalama Tahtası'
-      );
-    } else if (pet.species === 'köpek') {
-      recommendations.push(
-        'Diş Temizleme Çubuğu',
-        'Köpek Eğitim Oyuncağı',
-        'Eklem Destekleyici Vitaminler',
-        'Yüksek Proteinli Mamalar'
-      );
-    } else if (pet.species === 'kuş') {
-      recommendations.push(
-        'Vitaminli Kuş Yemi',
-        'Tüy Parlatıcı Sprey',
-        'Salıncak ve Oyuncak Çeşitleri',
-        'Kafes Temizlik Malzemeleri'
-      );
-    }
-
-    // Ağırlık durumuna göre öneriler
-    if (pet.weightHistory && pet.weightHistory.length > 0) {
-      const latestWeight =
-        pet.weightHistory[pet.weightHistory.length - 1].weight;
-        if (latestWeight > 10) {
-          recommendations.push('Düşük Kalorili Diyet Ürünleri', 'Düzenli Egzersiz Programı');
-        } else if (latestWeight < 2) {
-          recommendations.push('Yüksek Kalorili Enerji Mamaları', 'Veteriner Beslenme Takviyesi');
-        }
-      } else {
-        recommendations.push('Düzenli Ağırlık Takibi için Dijital Tartı');
-      }
-  
-      // Sağlık kayıtlarına göre öneriler
-      if (pet.healthRecords && pet.healthRecords.length > 0) {
-        const latestRecord = pet.healthRecords[pet.healthRecords.length - 1];
-        recommendations.push(
-          `Son sağlık kontrolü notlarına dikkat edin: ${latestRecord.notes}`
-        );
-      } else {
-        recommendations.push('Düzenli Sağlık Kontrolleri Planlayın');
-      }
-  
-      // Randevulara göre öneriler
-      if (pet.appointments && pet.appointments.length > 0) {
-        recommendations.push('Randevu Hatırlatma Uygulaması');
-      }
-  
-      // İlaç kullanımına göre öneriler
-      if (pet.medicationRecords && pet.medicationRecords.length > 0) {
-        recommendations.push('İlaç Takibi için Hatırlatma Uygulaması');
-      } else {
-        recommendations.push('Veteriner Tavsiyeli İlaç Kullanımına Dikkat Edin');
-      }
-  
-      // Acil durum kontakları
-      if (!pet.emergencyContacts || pet.emergencyContacts.length === 0) {
-        recommendations.push(
-          'Acil Durum İçin Bir Veteriner veya Yakın Kişi Ekleyin'
-        );
-      }
-  
-      res.json(recommendations);
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      res.status(500).json({ error: 'Server error' });
-    }
-  });
+    res.json(getRecommendations(pet));
+  } catch (error) {
+    console.error('Error fetching recommendations:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 module.exports = router;
