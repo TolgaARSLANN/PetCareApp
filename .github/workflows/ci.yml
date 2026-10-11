@@ -1,6 +1,6 @@
 name: CI
 
-# Her pull request'te ve main'e her gönderimde backend testleri,
+# Her pull request'te ve main'e her gönderimde lint (ESLint), backend testleri,
 # frontend testleri ve frontend derlemesi çalışır.
 on:
   pull_request:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend tests (Node ${{ matrix.node }})
+    name: Backend lint and tests (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -33,10 +33,11 @@ jobs:
           cache: npm
           cache-dependency-path: backend/server/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm test
 
   frontend:
-    name: Frontend tests and build (Node ${{ matrix.node }})
+    name: Frontend lint, tests and build (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -53,5 +54,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm test
       - run: npm run build

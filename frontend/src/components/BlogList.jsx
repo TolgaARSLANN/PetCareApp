@@ -52,25 +52,38 @@ const BlogList = () => {
     [setSearchParams]
   );
 
-  const fetchBlogs = useCallback(async () => {
-    setError(null);
-    try {
-      const { data } = await API.get("/blogs", { params: { page } });
-      setBlogs(data.items);
-      setTotalPages(data.totalPages);
-      // Sunucu aralık dışındaki sayfayı son sayfaya çeker; adresi de ona uydur
-      if (data.page !== page) goToPage(data.page, { replace: true });
-    } catch (err) {
-      setError("Yazılar yüklenemedi.");
-      console.error("Error fetching blogs:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, goToPage]);
+  // Listeyi yeniden çekmek için artırılır (yeni yazı, silme, tekrar dene)
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
-    fetchBlogs();
-  }, [fetchBlogs]);
+    // Sayfalar arasında hızlı geçişte geç gelen eski yanıt yeni sayfanın üzerine yazmasın
+    let ignore = false;
+    API.get("/blogs", { params: { page } })
+      .then(({ data }) => {
+        if (ignore) return;
+        setError(null);
+        setBlogs(data.items);
+        setTotalPages(data.totalPages);
+        // Sunucu aralık dışındaki sayfayı son sayfaya çeker; adresi de ona uydur
+        if (data.page !== page) goToPage(data.page, { replace: true });
+      })
+      .catch((err) => {
+        if (ignore) return;
+        setError("Yazılar yüklenemedi.");
+        console.error("Error fetching blogs:", err);
+      })
+      .finally(() => !ignore && setLoading(false));
+    return () => {
+      ignore = true;
+    };
+  }, [page, goToPage, reloadKey]);
+
+  const retry = () => {
+    setError(null);
+    setLoading(true);
+    reload();
+  };
 
   const changePage = (next) => {
     goToPage(next);
@@ -84,7 +97,7 @@ const BlogList = () => {
     setFormOpen(false);
     setNotice("Yazınız yayınlandı.");
     // Yeni yazı en başta görünür; zaten 1. sayfadaysak listeyi yeniden çek
-    if (page === 1) await fetchBlogs();
+    if (page === 1) reload();
     else goToPage(1);
   };
 
@@ -96,7 +109,7 @@ const BlogList = () => {
       setNotice("Yazı silindi.");
       setToDelete(null);
       // Sonraki sayfadan bir yazı bu sayfaya kayar; boşalan son sayfa bir öncekine düşer
-      await fetchBlogs();
+      reload();
     } catch (err) {
       console.error("Error deleting blog:", err);
       setDeleteError("Yazı silinemedi. Lütfen tekrar deneyin.");
@@ -153,7 +166,7 @@ const BlogList = () => {
       ) : error ? (
         <Alert type="error">
           {error}{" "}
-          <button type="button" className="link-button" onClick={fetchBlogs}>
+          <button type="button" className="link-button" onClick={retry}>
             Tekrar dene
           </button>
         </Alert>

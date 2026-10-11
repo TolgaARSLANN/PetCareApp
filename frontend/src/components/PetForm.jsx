@@ -9,21 +9,18 @@ import { capitalizeTr, todayInputValue } from "../utils/format";
 const SPECIES_OPTIONS = ["kedi", "köpek", "kuş", "diğer"];
 
 const PetForm = ({ selectedPet, onSaved, onCancel }) => {
-  const [name, setName] = useState("");
-  const [species, setSpecies] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  // Başlangıç değerleri düzenlenen hayvandan alınır; hayvan değişince PetList formu yeniden kurar (key)
+  const [name, setName] = useState(selectedPet?.name || "");
+  const [species, setSpecies] = useState((selectedPet?.species || "").toLocaleLowerCase("tr-TR"));
+  const [birthDate, setBirthDate] = useState(selectedPet?.birthDate?.split("T")[0] || "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const nameRef = useRef(null);
 
-  // Düzenleme modunda formu doldur ve ilk alana odaklan
+  // Form açılınca ilk alana odaklan
   useEffect(() => {
-    setName(selectedPet?.name || "");
-    setSpecies((selectedPet?.species || "").toLocaleLowerCase("tr-TR"));
-    setBirthDate(selectedPet?.birthDate?.split("T")[0] || "");
-    setError("");
     nameRef.current?.focus();
-  }, [selectedPet]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

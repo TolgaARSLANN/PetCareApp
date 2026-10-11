@@ -43,7 +43,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 - **Frontend:** React 18, Vite, React Router, Axios, Phosphor Icons, hand-written CSS design system (no UI framework)
 - **Backend:** Node.js, Express 4, Mongoose, JSON Web Tokens, bcrypt, dotenv
-- **Testing:** Jest + Supertest (backend), Vitest + Testing Library (frontend), GitHub Actions CI
+- **Testing:** Jest + Supertest (backend), Vitest + Testing Library (frontend), ESLint, GitHub Actions CI
 - **Database:** MongoDB
 
 ---
@@ -118,6 +118,7 @@ The app opens at `http://localhost:3000` and the API runs at `http://localhost:5
 | `npm run dev` | Backend (restarts on file changes) + frontend dev server |
 | `npm start` | Backend without file watching + frontend dev server |
 | `npm test` | Backend and frontend tests |
+| `npm run lint` | ESLint for backend and frontend (also runs in CI) |
 | `npm run build` | Frontend production build |
 
 The sections below describe running each part on its own.
