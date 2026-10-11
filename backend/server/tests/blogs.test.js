@@ -51,3 +51,56 @@ describe('GET /api/blogs/:id', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('GET /api/blogs pagination', () => {
+  // Blog.find().sort().skip().limit() zincirini taklit eder ve çağrıları kaydeder
+  const mockFind = (items = []) => {
+    const query = {
+      sort: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue(items),
+    };
+    jest.spyOn(Blog, 'find').mockReturnValue(query);
+    return query;
+  };
+
+  test('defaults to the first page of 9 posts, newest first', async () => {
+    jest.spyOn(Blog, 'countDocuments').mockResolvedValue(20);
+    const query = mockFind([{ title: 'a' }]);
+    const res = await request(app).get('/api/blogs');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ items: [{ title: 'a' }], page: 1, limit: 9, total: 20, totalPages: 3 });
+    expect(query.sort).toHaveBeenCalledWith({ date: -1, _id: -1 });
+    expect(query.skip).toHaveBeenCalledWith(0);
+    expect(query.limit).toHaveBeenCalledWith(9);
+  });
+
+  test('skips earlier pages', async () => {
+    jest.spyOn(Blog, 'countDocuments').mockResolvedValue(20);
+    const query = mockFind();
+    const res = await request(app).get('/api/blogs?page=2&limit=5');
+    expect(res.body.page).toBe(2);
+    expect(res.body.totalPages).toBe(4);
+    expect(query.skip).toHaveBeenCalledWith(5);
+    expect(query.limit).toHaveBeenCalledWith(5);
+  });
+
+  test('a page past the end falls back to the last page', async () => {
+    jest.spyOn(Blog, 'countDocuments').mockResolvedValue(10);
+    const query = mockFind();
+    const res = await request(app).get('/api/blogs?page=99');
+    expect(res.body.page).toBe(2);
+    expect(query.skip).toHaveBeenCalledWith(9);
+  });
+
+  test('invalid values use defaults and the limit is capped', async () => {
+    jest.spyOn(Blog, 'countDocuments').mockResolvedValue(0);
+    const query = mockFind();
+    const res = await request(app).get('/api/blogs?page=-3&limit=1000');
+    expect(res.body).toMatchObject({ page: 1, limit: 50, total: 0, totalPages: 1 });
+    expect(query.skip).toHaveBeenCalledWith(0);
+
+    await request(app).get('/api/blogs?page=abc&limit=0');
+    expect(query.limit).toHaveBeenLastCalledWith(9);
+  });
+});

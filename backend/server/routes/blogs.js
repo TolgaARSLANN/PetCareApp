@@ -7,11 +7,29 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-// Tüm blog yazılarını listeleme (herkese açık)
+const DEFAULT_PAGE_SIZE = 9;
+const MAX_PAGE_SIZE = 50;
+
+// Sorgu parametresini pozitif tam sayıya çevirir; geçersizse varsayılanı döndürür
+const toPositiveInt = (value, fallback) => {
+  const n = Number.parseInt(value, 10);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+};
+
+// Blog yazılarını sayfa sayfa listeleme (herkese açık)
+// ?page=1&limit=9 → { items, page, limit, total, totalPages }
 router.get('/', async (req, res) => {
   try {
-    const blogs = await Blog.find().sort({ date: -1 });
-    res.json(blogs);
+    const limit = Math.min(toPositiveInt(req.query.limit, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
+    const total = await Blog.countDocuments();
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    // Aralık dışındaki sayfa son sayfaya çekilir (ör. son yazı silindiğinde)
+    const page = Math.min(toPositiveInt(req.query.page, 1), totalPages);
+    const items = await Blog.find()
+      .sort({ date: -1, _id: -1 }) // _id eşit tarihlerde sırayı sabit tutar; sayfalar arasında kayma olmaz
+      .skip((page - 1) * limit)
+      .limit(limit);
+    res.json({ items, page, limit, total, totalPages });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

@@ -967,6 +967,88 @@ select.input {
   margin-top: var(--space-3);
 }
 
+/* ---------- Sayfalama ---------- */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+}
+
+.pagination-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+
+.pagination-btn:hover:not(:disabled):not([aria-current]) {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border-strong);
+}
+
+.pagination-btn[aria-current="page"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: default;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Sayfa değişince odak listeye taşınır; yapışkan menünün altında kalmasın */
+.blog-list {
+  scroll-margin-top: 96px;
+}
+
+.blog-list:focus {
+  outline: none;
+}
+
+.pagination-gap {
+  min-width: 24px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* Dar ekranda önceki/sonraki yalnızca okla gösterilir; metin ekran okuyucuda kalır */
+@media (max-width: 479px) {
+  .pagination-step span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
 /* ---------- Hareket azaltma tercihi ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,
