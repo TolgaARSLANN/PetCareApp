@@ -822,6 +822,13 @@ select.input {
   margin-top: var(--space-3);
 }
 
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
 .empty-state-compact {
   padding: var(--space-6) var(--space-4);
   border-radius: var(--radius-md);

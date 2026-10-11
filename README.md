@@ -52,34 +52,41 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 ```
 PetCareApp/
+├── .github/workflows/ci.yml      # Lint, tests and build on every PR (Node 22 and 24)
 ├── backend/
 │   └── server/
 │       ├── index.js              # Connects to MongoDB and starts the server
-│       ├── app.js                # Express app (routes, middleware)
+│       ├── app.js                # Express app (security headers, rate limits, routes, JSON 404 / errors)
 │       ├── config.js             # Reads settings from environment variables
+│       ├── eslint.config.js      # ESLint (Node + Jest)
 │       ├── .env.example          # Template for your local .env
 │       ├── middleware/
-│       │   └── authMiddleware.js # Verifies the JWT and sets req.userId
-│       ├── models/               # Mongoose schemas: User, Pet, Blog
+│       │   ├── authCookie.js     # Session cookie settings and token issuing
+│       │   ├── authMiddleware.js # Checks the session (token + session version), sliding renewal
+│       │   └── rateLimits.js     # Brute-force and general request limits
+│       ├── models/               # Mongoose schemas with validation: User, Pet, Blog
 │       ├── routes/               # auth.js, pets.js, blogs.js
 │       ├── services/             # Recommendation logic
-│       └── tests/                # Jest + Supertest API tests
+│       └── tests/                # Jest + Supertest API tests (run in America/Los_Angeles, see globalSetup.js)
 │
 ├── frontend/
 │   ├── .env.example              # Optional API URL override
-│   ├── index.html                # Vite entry page
-│   ├── vite.config.js            # Dev server port and build settings
+│   ├── index.html                # Vite entry page (applies the saved theme before first paint)
+│   ├── vite.config.js            # Dev server proxy, build chunks and test settings
+│   ├── eslint.config.js          # ESLint (React hooks + Fast Refresh rules)
 │   ├── public/                   # Favicon
 │   └── src/
-│       ├── components/           # Pages and page-level components
-│       │   └── ui/               # Shared UI: Alert, Field, ConfirmDialog, EmptyState, Loading…
-│       ├── hooks/                # useDocumentTitle
-│       ├── services/             # Axios API client and auth helpers
+│       ├── App.jsx               # Router: layout, lazy-loaded pages, error page
+│       ├── components/           # Pages and page-level components (+ their tests)
+│       │   └── ui/               # Shared UI: Alert, Field, ConfirmDialog, EmptyState, Pagination, Loading…
+│       ├── context/              # AuthProvider and useAuth (session state)
+│       ├── hooks/                # useDocumentTitle, useTheme, useUnsavedChanges
+│       ├── services/             # Axios API client
 │       ├── styles/               # global.css (design tokens + components), layout.css, pages.css
-│       ├── utils/                # Date / age formatting
-│       └── App.jsx               # Routes
+│       ├── test/                 # Test setup and helpers
+│       └── utils/                # Dates (calendar days), vaccines, upcoming items, chart, validation, pagination
 │
-├── package.json                  # Root scripts: setup, dev, start, test, build
+├── package.json                  # Root scripts: setup, dev, start, test, lint, build
 ├── LICENSE
 └── README.md
 ```

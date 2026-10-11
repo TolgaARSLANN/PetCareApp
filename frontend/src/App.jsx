@@ -5,6 +5,7 @@ import { GuestOnly, RequireAuth } from "./components/RouteGuards";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { PageLoader } from "./components/ui/Loading";
+import RouteError from "./components/RouteError";
 // İlk açılışta gerekenler (ana sayfa, giriş, kayıt) ana pakette gelir
 import Home from "./components/Home";
 import Login from "./components/Login";
@@ -53,66 +54,76 @@ const Layout = () => (
 );
 
 // Veri yönlendiricisi (createBrowserRouter): kaydedilmemiş değişiklik uyarısı (useBlocker) bunu gerektirir
-const router = createBrowserRouter([
+const routes = [
   {
     element: <Layout />,
+    // Çerçevenin kendisi (menü, alt bilgi) hata verirse son çare
+    errorElement: <RouteError />,
     children: [
-      { path: "/", element: <Home /> },
       {
-        path: "/login",
-        element: (
-          <GuestOnly>
-            <Login />
-          </GuestOnly>
-        ),
+        // Sayfalardaki hatalar burada yakalanır: menü ve alt bilgi yerinde kalır
+        errorElement: <RouteError />,
+        children: [
+          { path: "/", element: <Home /> },
+          {
+            path: "/login",
+            element: (
+              <GuestOnly>
+                <Login />
+              </GuestOnly>
+            ),
+          },
+          {
+            path: "/register",
+            element: (
+              <GuestOnly>
+                <Register />
+              </GuestOnly>
+            ),
+          },
+          {
+            path: "/pets",
+            element: (
+              <RequireAuth>
+                <PetList />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: "/pets/:id",
+            element: (
+              <RequireAuth>
+                <PetDetails />
+              </RequireAuth>
+            ),
+          },
+          { path: "/blogs", element: <BlogList /> },
+          { path: "/blogs/:id", element: <BlogDetails /> },
+          {
+            path: "/blogs/edit/:id",
+            element: (
+              <RequireAuth>
+                <BlogEditForm />
+              </RequireAuth>
+            ),
+          },
+          {
+            path: "/account",
+            element: (
+              <RequireAuth>
+                <Account />
+              </RequireAuth>
+            ),
+          },
+          { path: "/about-us", element: <AboutUs /> },
+          { path: "*", element: <NotFound /> },
+        ],
       },
-      {
-        path: "/register",
-        element: (
-          <GuestOnly>
-            <Register />
-          </GuestOnly>
-        ),
-      },
-      {
-        path: "/pets",
-        element: (
-          <RequireAuth>
-            <PetList />
-          </RequireAuth>
-        ),
-      },
-      {
-        path: "/pets/:id",
-        element: (
-          <RequireAuth>
-            <PetDetails />
-          </RequireAuth>
-        ),
-      },
-      { path: "/blogs", element: <BlogList /> },
-      { path: "/blogs/:id", element: <BlogDetails /> },
-      {
-        path: "/blogs/edit/:id",
-        element: (
-          <RequireAuth>
-            <BlogEditForm />
-          </RequireAuth>
-        ),
-      },
-      {
-        path: "/account",
-        element: (
-          <RequireAuth>
-            <Account />
-          </RequireAuth>
-        ),
-      },
-      { path: "/about-us", element: <AboutUs /> },
-      { path: "*", element: <NotFound /> },
     ],
   },
-]);
+];
+
+const router = createBrowserRouter(routes);
 
 const App = () => (
   <AuthProvider>
