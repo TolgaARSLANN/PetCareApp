@@ -8,7 +8,19 @@ export default defineConfig({
   // barındırma servisinde yapılmalıdır (README > Deployment).
   server: { port: 3000, proxy: { "/api": "http://localhost:5000" } },
   preview: { port: 3000, proxy: { "/api": "http://localhost:5000" } },
-  build: { outDir: "build" },
+  build: {
+    outDir: "build",
+    rollupOptions: {
+      output: {
+        // Kütüphaneler ayrı bir dosyada: uygulama kodu değişince tarayıcı önbelleğindeki kopyası kullanılır
+        manualChunks(id) {
+          if (id.includes("node_modules/@phosphor-icons")) return "icons";
+          if (id.includes("node_modules")) return "vendor";
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.js"],

@@ -1,20 +1,24 @@
-import React, { useEffect, useRef } from "react";
+import React, { lazy, Suspense, useEffect, useRef } from "react";
 import { createBrowserRouter, Outlet, RouterProvider, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { GuestOnly, RequireAuth } from "./components/RouteGuards";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import { PageLoader } from "./components/ui/Loading";
+// İlk açılışta gerekenler (ana sayfa, giriş, kayıt) ana pakette gelir
 import Home from "./components/Home";
-import PetList from "./components/PetList";
-import PetDetails from "./components/PetDetails";
-import BlogList from "./components/BlogList";
-import BlogDetails from "./components/BlogDetails";
-import BlogEditForm from "./components/BlogEditForm";
-import AboutUs from "./components/AboutUs";
-import Account from "./components/Account";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import NotFound from "./components/NotFound";
+
+// Diğer sayfalar ayrı dosyalara bölünür ve yalnızca açıldıklarında indirilir
+const PetList = lazy(() => import("./components/PetList"));
+const PetDetails = lazy(() => import("./components/PetDetails"));
+const BlogList = lazy(() => import("./components/BlogList"));
+const BlogDetails = lazy(() => import("./components/BlogDetails"));
+const BlogEditForm = lazy(() => import("./components/BlogEditForm"));
+const AboutUs = lazy(() => import("./components/AboutUs"));
+const Account = lazy(() => import("./components/Account"));
 
 // Sayfa değişince en üste kaydır ve odağı içeriğe taşı (klavye / ekran okuyucu kullanıcıları için)
 const RouteChangeHandler = () => {
@@ -40,7 +44,9 @@ const Layout = () => (
     </a>
     <Navbar />
     <main id="main" tabIndex={-1}>
-      <Outlet />
+      <Suspense fallback={<PageLoader label="Sayfa yükleniyor" />}>
+        <Outlet />
+      </Suspense>
     </main>
     <Footer />
   </>
