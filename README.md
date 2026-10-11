@@ -32,7 +32,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 | 💉 **Vaccines** | Record vaccines with the date given and the booster due date; overdue and upcoming (30 days) boosters are flagged |
 | ⚖️ **Weight Tracking** | Record weight measurements over time; a line chart shows the trend (hover or arrow keys for each value) |
 | 💊 **Medications** | Track medication name, dosage, frequency and dates |
-| 📅 **Appointments** | Keep a list of vet appointments with date, time, reason and location |
+| 📅 **Appointments** | Keep a list of vet appointments with date, time, reason and location; an "Upcoming" panel on the pets page lists every pet's upcoming appointments and due vaccine boosters, overdue first |
 | 🚑 **Emergency Contacts** | Store a vet or trusted person to call in an emergency |
 | 🎯 **Recommendations** | Care suggestions based on species, weight trend (kg), vaccine boosters and existing records |
 | 📖 **Blog** | Anyone can read posts; logged-in users can write posts and edit or delete their own |

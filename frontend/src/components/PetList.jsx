@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, PawPrint, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import API from "../services/api";
 import PetForm from "./PetForm";
+import UpcomingPanel from "./UpcomingPanel";
 import Alert from "./ui/Alert";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import EmptyState from "./ui/EmptyState";
@@ -113,6 +114,8 @@ const PetList = () => {
           <PetForm selectedPet={selectedPet} onSaved={handleSaved} onCancel={closeForm} />
         </div>
       )}
+
+      {!loading && !loadError && pets.length > 0 && <UpcomingPanel pets={pets} />}
 
       {loading ? (
         <SkeletonCards count={3} label="Evcil dostlar yükleniyor" />
