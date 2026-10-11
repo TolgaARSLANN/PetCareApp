@@ -32,7 +32,7 @@ The UI is in Turkish.
 | 💊 **Medications** | Track medication name, dosage, frequency and dates |
 | 📅 **Appointments** | Keep a list of vet appointments with date, time, reason and location |
 | 🚑 **Emergency Contacts** | Store a vet or trusted person to call in an emergency |
-| 🎯 **Recommendations** | Care product suggestions based on species, weight and existing records |
+| 🎯 **Recommendations** | Care suggestions based on species, weight trend (kg) and existing records |
 | 📖 **Blog** | Anyone can read posts; logged-in users can write posts and edit or delete their own |
 
 ---
@@ -41,6 +41,7 @@ The UI is in Turkish.
 
 - **Frontend:** React 18, React Router, Axios, Bootstrap 5
 - **Backend:** Node.js, Express 4, Mongoose, JSON Web Tokens, bcrypt, dotenv
+- **Testing:** Jest, Supertest
 - **Database:** MongoDB
 
 ---
@@ -51,15 +52,19 @@ The UI is in Turkish.
 PetCareApp/
 ├── backend/
 │   └── server/
-│       ├── index.js              # Express app and server entry point
+│       ├── index.js              # Connects to MongoDB and starts the server
+│       ├── app.js                # Express app (routes, middleware)
 │       ├── config.js             # Reads settings from environment variables
 │       ├── .env.example          # Template for your local .env
 │       ├── middleware/
 │       │   └── authMiddleware.js # Verifies the JWT and sets req.userId
 │       ├── models/               # Mongoose schemas: User, Pet, Blog
-│       └── routes/               # auth.js, pets.js, blogs.js
+│       ├── routes/               # auth.js, pets.js, blogs.js
+│       ├── services/             # Recommendation logic
+│       └── tests/                # Jest + Supertest API tests
 │
 ├── frontend/
+│   ├── .env.example              # Optional API URL override
 │   ├── public/
 │   └── src/
 │       ├── components/           # Pages and UI components
@@ -130,6 +135,17 @@ npm start
 ```
 
 The app opens at `http://localhost:3000`.
+
+To point the frontend at a different API (for example after deploying the backend), copy `frontend/.env.example` to `frontend/.env` and set `REACT_APP_API_URL`.
+
+### 4. Run the tests
+
+```bash
+cd backend/server
+npm test
+```
+
+The tests mock the database layer, so they run without MongoDB or a `.env` file.
 
 ---
 
