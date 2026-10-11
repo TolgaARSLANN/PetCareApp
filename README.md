@@ -26,7 +26,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 | Feature | Description |
 |---|---|
-| 🔐 **Accounts** | Register and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the password (which signs out other devices), sign out of all devices, or permanently delete the account with all its pets and posts |
+| 🔐 **Accounts** | Register and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the password (which signs out other devices), sign out of all devices, download all of your data as a JSON file, or permanently delete the account with all its pets and posts |
 | 🐶 **Pet Profiles** | Add, edit and delete pets; every pet is visible only to its owner |
 | 🏥 **Health Records** | Log dated health notes for each pet; every record (health, vaccine, weight, medication, appointment, contact) can be edited or deleted |
 | 💉 **Vaccines** | Record vaccines with the date given and the booster due date; overdue and upcoming (30 days) boosters are flagged |
@@ -220,6 +220,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 | `GET` | `/api/auth/me` | Current user: `{ userId }`, or `{ userId: null }` when logged out |
 | `POST` | `/api/auth/logout` | Clear the session cookie |
 | `GET` | `/api/auth/account` 🔒 | `{ email, petCount, blogCount }` |
+| `GET` | `/api/auth/account/export` 🔒 | Download all account data (email, pets with every record, blog posts) as a JSON file; no password hash or internal fields |
 | `POST` | `/api/auth/logout-all` 🔒 | Sign out of every device, including this one |
 | `PUT` | `/api/auth/password` 🔒 | Change the password (`currentPassword`, `newPassword`); signs out other devices and renews this session's cookie |
 | `DELETE` | `/api/auth/account` 🔒 | Delete the account with all its pets and posts (`password` to confirm); clears the session cookie |

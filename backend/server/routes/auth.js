@@ -130,6 +130,35 @@ router.get('/account', authMiddleware, async (req, res) => {
   }
 });
 
+// Verilerimi indir (KVKK/GDPR veri taşınabilirliği): hesabın tüm verileri tek bir JSON dosyası olarak.
+// Parola özeti, oturum sürümü ve iç alanlar (__v, ownerId, authorId) dosyaya girmez.
+const withoutInternals = ({ __v, ownerId, authorId, ...rest }) => rest;
+
+router.get('/account/export', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('email').lean();
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+    const [pets, blogs] = await Promise.all([
+      Pet.find({ ownerId: req.userId }).lean(),
+      Blog.find({ authorId: req.userId }).sort({ date: -1 }).lean(),
+    ]);
+
+    const exportedAt = new Date();
+    const fileName = `pawfect-care-verilerim-${exportedAt.toISOString().slice(0, 10)}.json`;
+    res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      exportedAt: exportedAt.toISOString(),
+      account: { email: user.email },
+      pets: pets.map(withoutInternals),
+      blogs: blogs.map(withoutInternals),
+    });
+  } catch (error) {
+    console.error('Error exporting account data:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Parola değiştirme: mevcut parola doğrulanır. Başarısız denemeler giriş sınırına sayılır
 // (çalınmış bir oturumla parola tahmin edilemesin). Oturum sürümü artırıldığı için diğer
 // cihazlardaki oturumlar kapanır; bu oturum yeni sürümle verilen token ile sürer.

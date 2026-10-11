@@ -106,6 +106,34 @@ describe("Account", () => {
     expect(await screen.findByText("Giriş sayfası: signedOutEverywhere")).toBeInTheDocument();
   });
 
+  test("downloads the account data as a file", async () => {
+    const user = userEvent.setup();
+    const blob = new Blob(["{}"], { type: "application/json" });
+    vi.mocked(API.get).mockImplementation((url) =>
+      Promise.resolve(
+        url === "/auth/me"
+          ? { data: { userId: "u1" } }
+          : url === "/auth/account/export"
+            ? { data: blob, headers: { "content-disposition": 'attachment; filename="pawfect-care-verilerim-2026-10-12.json"' } }
+            : { data: { email: "a@b.com", petCount: 3, blogCount: 2 } }
+      )
+    );
+    URL.createObjectURL = vi.fn(() => "blob:test");
+    URL.revokeObjectURL = vi.fn();
+    const clicked = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function () {
+      expect(this.download).toMatch(/^pawfect-care-verilerim-\d{4}-\d{2}-\d{2}\.json$/);
+      expect(this.href).toBe("blob:test");
+    });
+    await renderAccount();
+
+    await user.click(screen.getByRole("button", { name: "Verilerimi indir" }));
+
+    expect(API.get).toHaveBeenCalledWith("/auth/account/export", { responseType: "blob" });
+    expect(clicked).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:test");
+    clicked.mockRestore();
+  });
+
   test("deletes the account after confirmation and goes home", async () => {
     const user = userEvent.setup();
     vi.mocked(API.delete).mockResolvedValue({ data: { deletedPets: 3, deletedBlogs: 2 } });
