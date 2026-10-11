@@ -26,7 +26,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 | Feature | Description |
 |---|---|
-| 🔐 **Accounts** | Register and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the password or permanently delete the account with all its pets and posts |
+| 🔐 **Accounts** | Register and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the password (which signs out other devices), sign out of all devices, or permanently delete the account with all its pets and posts |
 | 🐶 **Pet Profiles** | Add, edit and delete pets; every pet is visible only to its owner |
 | 🏥 **Health Records** | Log dated health notes for each pet; every record (health, vaccine, weight, medication, appointment, contact) can be edited or deleted |
 | 💉 **Vaccines** | Record vaccines with the date given and the booster due date; overdue and upcoming (30 days) boosters are flagged |
@@ -193,6 +193,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 ## 🔒 Security
 
 - **Session cookie:** after login the JWT is stored in an `httpOnly`, `SameSite=Strict` cookie scoped to `/api` (and `Secure` in production). Page scripts cannot read it, so an XSS bug cannot steal the session, and the browser does not send it on cross-site requests (CSRF). The login response only contains the user id.
+- **Session revocation:** every token carries the account's session version, checked on each request. Changing the password or choosing "sign out of all devices" bumps the version, so stolen or forgotten sessions stop working immediately (tokens of deleted accounts are rejected too).
 - **Same-site API:** because of `SameSite=Strict`, the frontend must reach the API on its own address under `/api`. In development the Vite proxy does this; when deploying, add a rewrite on the frontend host (for example a Vercel rewrite of `/api/:path*` to the backend URL) and set `TRUST_PROXY=1` on the backend.
 - **Brute-force protection:** at most 10 failed attempts per IP per 15 minutes across login, register, password change and account deletion (`429` afterwards); successful attempts don't count.
 - **Rate limit:** 1000 API requests per IP per 15 minutes.
@@ -215,7 +216,8 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 | `GET` | `/api/auth/me` | Current user: `{ userId }`, or `{ userId: null }` when logged out |
 | `POST` | `/api/auth/logout` | Clear the session cookie |
 | `GET` | `/api/auth/account` 🔒 | `{ email, petCount, blogCount }` |
-| `PUT` | `/api/auth/password` 🔒 | Change the password (`currentPassword`, `newPassword`); renews the session cookie |
+| `POST` | `/api/auth/logout-all` 🔒 | Sign out of every device, including this one |
+| `PUT` | `/api/auth/password` 🔒 | Change the password (`currentPassword`, `newPassword`); signs out other devices and renews this session's cookie |
 | `DELETE` | `/api/auth/account` 🔒 | Delete the account with all its pets and posts (`password` to confirm); clears the session cookie |
 
 ### Pets 🔒

@@ -3,7 +3,7 @@ import { act } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import API from "../services/api";
 import { AuthProvider } from "../context/AuthContext";
 import { useAuth } from "../context/useAuth";
@@ -20,12 +20,20 @@ const LogoutButton = () => {
   );
 };
 
+// Giriş sayfasına hangi nedenle gelindiğini gösterir
+const LoginPage = () => (
+  <>
+    <p>Giriş sayfası</p>
+    <p data-testid="reason">{useLocation().state?.reason || ""}</p>
+  </>
+);
+
 const renderAt = (path) =>
   render(
     <AuthProvider>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route path="/login" element={<p>Giriş sayfası</p>} />
+          <Route path="/login" element={<LoginPage />} />
           <Route
             path="/pets"
             element={
@@ -85,7 +93,7 @@ describe("session and protected routes", () => {
     expect(await screen.findByText("Giriş sayfası")).toBeInTheDocument();
   });
 
-  test("an expired session (401 elsewhere) sends the user to login", async () => {
+  test("an expired or remotely closed session (401 elsewhere) sends the user to login with the reason", async () => {
     vi.mocked(API.get).mockResolvedValue({ data: { userId: "u1" } });
     renderAt("/pets");
     await screen.findByText("Evcil dostlar");
@@ -93,5 +101,6 @@ describe("session and protected routes", () => {
     act(() => window.dispatchEvent(new Event("auth:expired")));
 
     expect(await screen.findByText("Giriş sayfası")).toBeInTheDocument();
+    expect(screen.getByTestId("reason")).toHaveTextContent("sessionEnded");
   });
 });

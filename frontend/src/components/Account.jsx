@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Key, Trash, UserCircle } from "@phosphor-icons/react";
+import { DeviceMobile, Key, SignOut, Trash, UserCircle } from "@phosphor-icons/react";
 import API from "../services/api";
 import { useAuth } from "../context/useAuth";
 import Alert from "./ui/Alert";
@@ -69,7 +69,7 @@ const ChangePassword = () => {
       </div>
       {success && (
         <Alert type="success" onClose={() => setSuccess(false)}>
-          Parolanız değiştirildi.
+          Parolanız değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.
         </Alert>
       )}
       {error && <Alert type="error">{error}</Alert>}
@@ -111,6 +111,67 @@ const ChangePassword = () => {
           </button>
         </div>
       </form>
+    </section>
+  );
+};
+
+// Kayıp ya da ortak kullanılan bir cihaz için: hesaba açılmış tüm oturumları (bu cihaz dahil) kapatır
+const SignOutEverywhere = () => {
+  const { endSession } = useAuth();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const confirmSignOut = async () => {
+    setBusy(true);
+    try {
+      await API.post("/auth/logout-all");
+      // Yönlendirmeyi RequireAuth yapar: giriş sayfası nedeni açıklar
+      endSession("signedOutEverywhere");
+    } catch (err) {
+      setConfirming(false);
+      setError(errorMessage(err, {}, "Oturumlar kapatılamadı. Lütfen tekrar deneyin."));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="card form-card" aria-labelledby="sessions-title">
+      <div className="section-card-head">
+        <span className="icon-tile">
+          <DeviceMobile size={22} weight="duotone" aria-hidden="true" />
+        </span>
+        <h2 id="sessions-title" className="card-title">
+          Oturumlar
+        </h2>
+      </div>
+      <p className="text-muted">
+        Hesabınıza başka bir cihazdan, örneğin kaybolan bir telefondan ya da ortak bir bilgisayardan giriş yapılmış
+        olabilir. Tüm cihazlardan çıkış yaptığınızda bu cihaz dahil her yerde yeniden giriş yapmanız gerekir.
+      </p>
+      {error && <Alert type="error">{error}</Alert>}
+      <div className="form-actions">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            setError("");
+            setConfirming(true);
+          }}
+        >
+          <SignOut size={18} aria-hidden="true" />
+          Tüm cihazlardan çıkış yap
+        </button>
+      </div>
+      <ConfirmDialog
+        open={confirming}
+        title="Tüm cihazlardan çıkılsın mı?"
+        message="Bu cihaz dahil, hesabınıza açık tüm oturumlar kapatılacak."
+        confirmLabel="Evet, çıkış yap"
+        busy={busy}
+        onConfirm={confirmSignOut}
+        onCancel={() => setConfirming(false)}
+      />
     </section>
   );
 };
@@ -236,6 +297,7 @@ const Account = () => {
       ) : (
         <>
           <ChangePassword />
+          <SignOutEverywhere />
           <DeleteAccount petCount={account.petCount} blogCount={account.blogCount} />
         </>
       )}

@@ -78,9 +78,10 @@ describe('session endpoints', () => {
   const tokenCookie = (userId) => `token=${jwt.sign({ userId }, 'test-secret')}`;
 
   test('GET /me returns the user id from the cookie', async () => {
-    const res = await request(app).get('/api/auth/me').set('Cookie', tokenCookie('u42'));
+    const id = '507f1f77bcf86cd799439011';
+    const res = await request(app).get('/api/auth/me').set('Cookie', tokenCookie(id));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ userId: 'u42' });
+    expect(res.body).toEqual({ userId: id });
   });
 
   test('GET /me without a session answers "nobody"', async () => {
@@ -137,5 +138,64 @@ describe('hardening', () => {
       .post('/api/auth/register')
       .send({ email: 'a@b.com', password: 'x'.repeat(200 * 1024) });
     expect(res.status).toBe(413);
+  });
+});
+
+describe('session versions (signing out other devices)', () => {
+  const userId = '507f1f77bcf86cd799439011';
+  const cookieFor = (claims) => `token=${jwt.sign({ userId, ...claims }, 'test-secret')}`;
+
+  test('login puts the session version in the token', async () => {
+    const password = await bcrypt.hash('correct', 4);
+    jest.spyOn(User, 'findOne').mockResolvedValue({ _id: userId, password, tokenVersion: 3 });
+    const res = await request(app).post('/api/auth/login').send({ email: 'a@b.com', password: 'correct' });
+    const token = res.headers['set-cookie'][0].split(';')[0].slice('token='.length);
+    expect(jwt.verify(token, 'test-secret').tv).toBe(3);
+  });
+
+  test('a token from an older session version is rejected', async () => {
+    const exists = jest.spyOn(User, 'exists').mockResolvedValue(null);
+    const res = await request(app)
+      .get('/api/pets')
+      .set('Cookie', cookieFor({ tv: 1 }));
+    expect(res.status).toBe(401);
+    expect(res.body.message).toBe('Session ended');
+    expect(exists).toHaveBeenCalledWith({ _id: userId, tokenVersion: 1 });
+
+    const me = await request(app)
+      .get('/api/auth/me')
+      .set('Cookie', cookieFor({ tv: 1 }));
+    expect(me.body).toEqual({ userId: null });
+  });
+
+  test('tokens issued before session versions match accounts without the field', async () => {
+    const exists = jest.spyOn(User, 'exists').mockResolvedValue({ _id: userId });
+    jest.spyOn(require('../models/Pet'), 'find').mockResolvedValue([]);
+    const res = await request(app).get('/api/pets').set('Cookie', cookieFor({}));
+    expect(res.status).toBe(200);
+    expect(exists).toHaveBeenCalledWith({ _id: userId, tokenVersion: { $in: [0, null] } });
+  });
+
+  test('a token whose user id is not an ObjectId is a 401, not a 500', async () => {
+    const res = await request(app)
+      .get('/api/pets')
+      .set('Cookie', `token=${jwt.sign({ userId: 'u42' }, 'test-secret')}`);
+    expect(res.status).toBe(401);
+  });
+
+  test('POST /logout-all bumps the session version and clears the cookie', async () => {
+    const update = jest.spyOn(User, 'updateOne').mockResolvedValue({ modifiedCount: 1 });
+    const res = await request(app)
+      .post('/api/auth/logout-all')
+      .set('Cookie', cookieFor({ tv: 0 }));
+    expect(res.status).toBe(204);
+    expect(update).toHaveBeenCalledWith({ _id: userId }, { $inc: { tokenVersion: 1 } });
+    const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
+    expect(cookie).toMatch(/Expires=Thu, 01 Jan 1970/);
+  });
+
+  test('POST /logout-all requires a session', async () => {
+    const res = await request(app).post('/api/auth/logout-all');
+    expect(res.status).toBe(401);
   });
 });
