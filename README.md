@@ -35,7 +35,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 | 📅 **Appointments** | Keep a list of vet appointments with date, time, reason and location; an "Upcoming" panel on the pets page lists every pet's upcoming appointments and due vaccine boosters, overdue first |
 | 🚑 **Emergency Contacts** | Store a vet or trusted person to call in an emergency |
 | 🎯 **Recommendations** | Care suggestions based on species, weight trend (kg), vaccine boosters and existing records |
-| 📖 **Blog** | Anyone can read posts; logged-in users can write posts and edit or delete their own |
+| 📖 **Blog** | Anyone can read posts, 9 per page with shareable page links (`/blogs?page=2`); logged-in users can write posts and edit or delete their own |
 
 ---
 
@@ -242,7 +242,7 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/blogs` | List posts (newest first) |
+| `GET` | `/api/blogs?page=1&limit=9` | List posts, newest first. Returns `{ items, page, limit, total, totalPages }`; `limit` is capped at 50 and a page past the end returns the last page |
 | `GET` | `/api/blogs/:id` | Get one post |
 | `POST` | `/api/blogs` 🔒 | Create a post |
 | `PUT` | `/api/blogs/:id` 🔒 | Update your own post |
