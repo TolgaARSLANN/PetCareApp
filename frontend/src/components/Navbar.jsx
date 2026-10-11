@@ -1,10 +1,25 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
-import "../styles/Navbar.css";
+import React, { useEffect, useState } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { List, SignOut, X } from "@phosphor-icons/react";
+import Logo from "./ui/Logo";
+
+const navClass = ({ isActive }) => `nav-link ${isActive ? "is-active" : ""}`;
 
 const Navbar = ({ isLoggedIn, setIsLoggedIn }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+
+  // Sayfa değişince mobil menüyü kapat
+  useEffect(() => setOpen(false), [location.pathname]);
+
+  // Escape ile mobil menüyü kapat
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -13,70 +28,64 @@ const Navbar = ({ isLoggedIn, setIsLoggedIn }) => {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-light">
-      <div className="container">
-        <Link className="navbar-brand" to="/">
-          <img src={logo} alt="Pawfect Care Logo" style={{ height: "40px", marginRight: "10px" }} />
-          Pawfect Care
+    <header className="site-header">
+      <nav className="container navbar" aria-label="Ana menü">
+        <Link to="/" className="navbar-brand" aria-label="Pawfect Care ana sayfa">
+          <Logo />
         </Link>
+
         <button
-          className="navbar-toggler"
           type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
+          className="btn-icon navbar-toggle"
+          aria-expanded={open}
+          aria-controls="main-menu"
+          aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
+          onClick={() => setOpen((v) => !v)}
         >
-          <span className="navbar-toggler-icon"></span>
+          {open ? <X size={24} aria-hidden="true" /> : <List size={24} aria-hidden="true" />}
         </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ms-auto">
-            <li className="nav-item">
-              <Link className="nav-link" to="/blogs">
-              <b>Blog</b>
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/about-us">
-              <b>Hakkımızda</b>
-              </Link>
-            </li>
+
+        <div id="main-menu" className={`navbar-menu ${open ? "is-open" : ""}`}>
+          <ul className="nav-links">
             {isLoggedIn && (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/pets">
-                  <b>Evcil Dostlarım</b>
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <button
-                    className="btn btn-link nav-link"
-                    onClick={handleLogout}
-                  >
-                    <b>Çıkış</b>
-                  </button>
-                </li>
-              </>
+              <li>
+                <NavLink to="/pets" className={navClass}>
+                  Evcil Dostlarım
+                </NavLink>
+              </li>
             )}
-            {!isLoggedIn && (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/login">
-                    <b>Giriş</b>
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/register">
-                    <b>Üye Ol</b>
-                  </Link>
-                </li>
-              </>
-            )}
+            <li>
+              <NavLink to="/blogs" className={navClass}>
+                Blog
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/about-us" className={navClass}>
+                Hakkımızda
+              </NavLink>
+            </li>
           </ul>
+
+          <div className="nav-actions">
+            {isLoggedIn ? (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={handleLogout}>
+                <SignOut size={18} aria-hidden="true" />
+                Çıkış yap
+              </button>
+            ) : (
+              <>
+                <Link to="/login" className="btn btn-ghost btn-sm">
+                  Giriş yap
+                </Link>
+                <Link to="/register" className="btn btn-primary btn-sm">
+                  Ücretsiz üye ol
+                </Link>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };
 

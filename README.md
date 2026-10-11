@@ -17,7 +17,7 @@
 
 **Pawfect Care** is a full-stack web application that helps pet owners keep their animals' health and care records in one place. Each user manages their own pets: health notes, weight history, medications, vet appointments and emergency contacts. The app also suggests care products based on the pet's species and weight, and includes a community blog.
 
-The UI is in Turkish.
+The UI is in Turkish. It is responsive (mobile to desktop) and built with accessibility in mind: visible labels, keyboard focus styles, an accessible confirm dialog, skip link and reduced-motion support.
 
 ---
 
@@ -39,7 +39,7 @@ The UI is in Turkish.
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React 18, Vite, React Router, Axios, Bootstrap 5
+- **Frontend:** React 18, Vite, React Router, Axios, Phosphor Icons, hand-written CSS design system (no UI framework)
 - **Backend:** Node.js, Express 4, Mongoose, JSON Web Tokens, bcrypt, dotenv
 - **Testing:** Jest, Supertest
 - **Database:** MongoDB
@@ -67,10 +67,14 @@ PetCareApp/
 │   ├── .env.example              # Optional API URL override
 │   ├── index.html                # Vite entry page
 │   ├── vite.config.js            # Dev server port and build settings
+│   ├── public/                   # Favicon
 │   └── src/
-│       ├── components/           # Pages and UI components
+│       ├── components/           # Pages and page-level components
+│       │   └── ui/               # Shared UI: Alert, Field, ConfirmDialog, EmptyState, Loading…
+│       ├── hooks/                # useDocumentTitle
 │       ├── services/             # Axios API client and auth helpers
-│       ├── styles/
+│       ├── styles/               # global.css (design tokens + components), layout.css, pages.css
+│       ├── utils/                # Date / age formatting
 │       └── App.jsx               # Routes
 │
 ├── package.json                  # Root scripts: setup, dev, start, test, build

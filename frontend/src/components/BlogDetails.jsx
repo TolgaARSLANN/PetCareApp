@@ -1,62 +1,83 @@
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Article, ArrowLeft, PencilSimple } from "@phosphor-icons/react";
 import API from "../services/api";
-import "./BlogDetails.css";
+import { getCurrentUserId } from "../services/auth";
+import { BlogCover } from "./BlogList";
+import EmptyState from "./ui/EmptyState";
+import { PageLoader } from "./ui/Loading";
+import useDocumentTitle from "../hooks/useDocumentTitle";
+import { formatDate } from "../utils/format";
 
 const BlogDetails = () => {
-  const { id } = useParams(); // URL'deki blog ID'sini al
+  const { id } = useParams();
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  useDocumentTitle(blog?.title || "Blog");
 
   useEffect(() => {
     const fetchBlogDetails = async () => {
       try {
         const { data } = await API.get(`/blogs/${id}`);
         setBlog(data);
-      } catch (error) {
-        setError("Yazı yüklenemedi. Lütfen daha sonra tekrar deneyin.");
-        console.error("Error fetching blog details:", error);
+      } catch (err) {
+        setError(
+          err.response?.status === 404 ? "Bu yazı bulunamadı; silinmiş olabilir." : "Yazı yüklenemedi. Lütfen tekrar deneyin."
+        );
+        console.error("Error fetching blog details:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchBlogDetails();
   }, [id]);
 
-  if (loading) {
-    return <p className="loading-message">Loading...</p>;
+  if (loading) return <PageLoader label="Yazı yükleniyor" />;
+
+  if (error || !blog) {
+    return (
+      <div className="container page">
+        <EmptyState
+          icon={Article}
+          title="Yazı açılamadı"
+          description={error || "Yazı bulunamadı."}
+          action={
+            <Link to="/blogs" className="btn btn-primary">
+              Tüm yazılara dön
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
-  if (error) {
-    return <p className="error-message">{error}</p>;
-  }
-
-  if (!blog) {
-    return <p className="no-blog-message">Yazı bulunamadı.</p>;
-  }
+  const isOwner = blog.authorId && blog.authorId === getCurrentUserId();
 
   return (
-    <div className="blog-details">
-      <h2 className="blog-title">{blog.title}</h2>
-      <p className="blog-author">
-        <strong>Yazar:</strong> {blog.author || "Bilinmiyor"}
-      </p>
-      <p className="blog-date">
-        <strong>Tarih:</strong> {new Date(blog.date || blog.createdAt).toLocaleDateString()}
-      </p>
-      {blog.image && (
-        <img
-          src={blog.image}
-          alt={blog.title}
-          className="blog-image"
-        />
-      )}
-      <div className="blog-content">
-        <p>{blog.content}</p>
-      </div>
-    </div>
+    <article className="container container-narrow page">
+      <Link to="/blogs" className="back-link">
+        <ArrowLeft size={18} aria-hidden="true" />
+        Tüm yazılar
+      </Link>
+      <header className="article-header">
+        <h1 className="article-title">{blog.title}</h1>
+        <div className="article-meta">
+          <span>
+            {blog.author || "Bilinmeyen yazar"} ·{" "}
+            <time dateTime={blog.date}>{formatDate(blog.date || blog.createdAt)}</time>
+          </span>
+          {isOwner && (
+            <Link to={`/blogs/edit/${blog._id}`} className="btn btn-secondary btn-sm">
+              <PencilSimple size={16} aria-hidden="true" />
+              Düzenle
+            </Link>
+          )}
+        </div>
+      </header>
+      {blog.image && <BlogCover src={blog.image} className="article-cover" />}
+      <div className="article-body">{blog.content}</div>
+    </article>
   );
 };
 

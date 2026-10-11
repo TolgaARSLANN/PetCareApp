@@ -1,129 +1,99 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import API from "../services/api";
-import "./PetForm.css";
+import Alert from "./ui/Alert";
+import Field from "./ui/Field";
+import { Spinner } from "./ui/Loading";
+import { capitalizeTr, todayInputValue } from "../utils/format";
 
 // Öneri sistemi bu değerlerle çalışır (backend/server/routes/pets.js)
 const SPECIES_OPTIONS = ["kedi", "köpek", "kuş", "diğer"];
 
-
-const PetForm = ({ selectedPet, setSelectedPet, setPets, pets }) => {
+const PetForm = ({ selectedPet, onSaved, onCancel }) => {
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const nameRef = useRef(null);
 
-  // Formu doldur
+  // Düzenleme modunda formu doldur ve ilk alana odaklan
   useEffect(() => {
-    if (selectedPet) {
-      setName(selectedPet.name);
-      setSpecies((selectedPet.species || "").toLocaleLowerCase("tr-TR"));
-      setBirthDate(selectedPet.birthDate?.split("T")[0] || "");
-    } else {
-      setName("");
-      setSpecies("");
-      setBirthDate("");
-    }
+    setName(selectedPet?.name || "");
+    setSpecies((selectedPet?.species || "").toLocaleLowerCase("tr-TR"));
+    setBirthDate(selectedPet?.birthDate?.split("T")[0] || "");
+    setError("");
+    nameRef.current?.focus();
   }, [selectedPet]);
 
-  // Form gönderimi
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setBusy(true);
     try {
-      if (selectedPet) {
-        // Güncelleme
-        const { data } = await API.put(`/pets/${selectedPet._id}`, {
-          name,
-          species,
-          birthDate,
-        });
-        setPets(
-          pets.map((pet) =>
-            pet._id === selectedPet._id ? data : pet
-          )
-        );
-      } else {
-        // Yeni pet ekleme
-        const { data } = await API.post("/pets", {
-          name,
-          species,
-          birthDate,
-        });
-        setPets([...pets, data]);
-      }
-      setSelectedPet(null);
-      setName("");
-      setSpecies("");
-      setBirthDate("");
+      const payload = { name: name.trim(), species, birthDate };
+      const { data } = selectedPet
+        ? await API.put(`/pets/${selectedPet._id}`, payload)
+        : await API.post("/pets", payload);
+      onSaved(data, Boolean(selectedPet));
     } catch (err) {
       console.error(err);
-      setError("Kaydedilemedi. Lütfen tekrar deneyin.");
+      setError("Kaydedilemedi. Bilgileri kontrol edip tekrar deneyin.");
+    } finally {
+      setBusy(false);
     }
   };
 
+  const options = [...SPECIES_OPTIONS, ...(species && !SPECIES_OPTIONS.includes(species) ? [species] : [])];
+
   return (
-    <form onSubmit={handleSubmit} className="mb-4">
-      <h3>{selectedPet ? "Evcil Dost Düzenle" : "Evcil Dost Ekle"}</h3>
-      {error && <div className="alert alert-danger">{error}</div>}
-      <div className="mb-3">
-        <label htmlFor="name" className="form-label">
-          Adı
-        </label>
-        <input
-          type="text"
-          className="form-control"
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-      </div>
-      <div className="mb-3">
-        <label htmlFor="species" className="form-label">
-          Tür
-        </label>
-        <select
-          className="form-select"
-          id="species"
-          value={species}
-          onChange={(e) => setSpecies(e.target.value)}
-          required
-        >
-          <option value="" disabled>
-            Tür seçin
-          </option>
-          {/* Eski kayıtlarda listede olmayan bir tür varsa onu da göster */}
-          {[...SPECIES_OPTIONS, ...(species && !SPECIES_OPTIONS.includes(species) ? [species] : [])].map((option) => (
-            <option key={option} value={option}>
-              {option.charAt(0).toLocaleUpperCase("tr-TR") + option.slice(1)}
+    <form onSubmit={handleSubmit} className="card form-card" aria-labelledby="pet-form-title">
+      <h2 id="pet-form-title" className="card-title">
+        {selectedPet ? `${selectedPet.name} bilgilerini düzenle` : "Yeni evcil dost ekle"}
+      </h2>
+      {error && <Alert type="error">{error}</Alert>}
+      <div className="form-grid form-grid-3">
+        <Field id="pet-name" label="Adı" required>
+          <input
+            ref={nameRef}
+            type="text"
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={60}
+            autoComplete="off"
+          />
+        </Field>
+        <Field id="pet-species" label="Tür" required>
+          <select className="input" value={species} onChange={(e) => setSpecies(e.target.value)}>
+            <option value="" disabled>
+              Tür seçin
             </option>
-          ))}
-        </select>
+            {options.map((option) => (
+              <option key={option} value={option}>
+                {capitalizeTr(option)}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="pet-birth" label="Doğum tarihi" optional>
+          <input
+            type="date"
+            className="input"
+            value={birthDate}
+            max={todayInputValue()}
+            onChange={(e) => setBirthDate(e.target.value)}
+          />
+        </Field>
       </div>
-      <div className="mb-3">
-        <label htmlFor="birthDate" className="form-label">
-          Doğum Tarihi
-        </label>
-        <input
-          type="date"
-          className="form-control"
-          id="birthDate"
-          value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
-        />
-      </div>
-      <button type="submit" className="btn btn-primary">
-        {selectedPet ? "Güncelle" : "Ekle"}
-      </button>
-      {selectedPet && (
-        <button
-          type="button"
-          className="btn btn-secondary ms-2"
-          onClick={() => setSelectedPet(null)}
-        >
-          İptal
+      <div className="form-actions">
+        <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy}>
+          Vazgeç
         </button>
-      )}
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          {busy && <Spinner size={16} />}
+          {selectedPet ? "Değişiklikleri kaydet" : "Evcil dostu ekle"}
+        </button>
+      </div>
     </form>
   );
 };

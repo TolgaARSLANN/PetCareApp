@@ -1,67 +1,81 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
+import AuthShell from "./AuthShell";
+import Alert from "./ui/Alert";
+import Field from "./ui/Field";
+import PasswordInput from "./ui/PasswordInput";
+import { Spinner } from "./ui/Loading";
+import useDocumentTitle from "../hooks/useDocumentTitle";
+
+// Backend'in döndürdüğü mesajların Türkçesi
+const ERROR_TRANSLATIONS = {
+  "Email in use": "Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.",
+  "A valid email is required": "Geçerli bir e-posta adresi girin.",
+  "Password must be at least 6 characters": "Parola en az 6 karakter olmalı.",
+};
 
 const Register = () => {
+  useDocumentTitle("Üye ol");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setBusy(true);
+    setError("");
     try {
       await API.post("/auth/register", { email, password });
       navigate("/login", { state: { registered: true } });
     } catch (err) {
-      // Backend'in döndürdüğü mesajı göster (ör. e-posta kullanımda, parola çok kısa)
       const message = err.response?.data?.message;
-      const translations = {
-        "Email in use": "Bu e-posta adresi zaten kayıtlı.",
-        "A valid email is required": "Geçerli bir e-posta adresi girin.",
-        "Password must be at least 6 characters": "Parola en az 6 karakter olmalı.",
-      };
-      setError(translations[message] || "Kayıt başarısız. Lütfen tekrar deneyin.");
+      setError(
+        ERROR_TRANSLATIONS[message] ||
+          (err.response ? "Kayıt tamamlanamadı. Lütfen tekrar deneyin." : "Sunucuya ulaşılamadı. Lütfen tekrar deneyin.")
+      );
+      setBusy(false);
     }
   };
 
   return (
-    <div className="container">
-      <h2>Üye Ol</h2>
-      {error && <div className="alert alert-danger">{error}</div>}
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label htmlFor="email" className="form-label">
-            Email
-          </label>
+    <AuthShell
+      title="Hesap oluşturun"
+      subtitle="Ücretsiz üye olun, evcil dostlarınızın sağlık defterini hemen başlatın."
+      footer={
+        <>
+          Zaten üye misiniz? <Link to="/login">Giriş yapın</Link>
+        </>
+      }
+    >
+      {error && <Alert type="error">{error}</Alert>}
+      <form onSubmit={handleSubmit} className="form-stack">
+        <Field id="email" label="E-posta" required>
           <input
             type="email"
-            className="form-control"
-            id="email"
+            className="input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
+            autoComplete="email"
+            inputMode="email"
           />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="password" className="form-label">
-            Parola
-          </label>
-          <input
-            type="password"
-            className="form-control"
-            id="password"
+        </Field>
+        <Field id="password" label="Parola" hint="En az 6 karakter." required>
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
             minLength={6}
-            required
           />
-        </div>
-        <button type="submit" className="btn btn-primary">
-          Üye Ol
+        </Field>
+        <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={busy}>
+          {busy && <Spinner size={18} />}
+          {busy ? "Hesap oluşturuluyor…" : "Üye ol"}
         </button>
       </form>
-    </div>
+    </AuthShell>
   );
 };
 

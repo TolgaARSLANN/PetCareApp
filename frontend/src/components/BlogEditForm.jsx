@@ -1,102 +1,61 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "@phosphor-icons/react";
 import API from "../services/api";
-import "./BlogEditForm.css";
+import BlogForm from "./BlogForm";
+import Alert from "./ui/Alert";
+import { PageLoader } from "./ui/Loading";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 const BlogEditForm = () => {
-  const { id } = useParams(); // URL'deki blog ID'sini al
+  useDocumentTitle("Yazıyı düzenle");
+  const { id } = useParams();
   const navigate = useNavigate();
-
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [author, setAuthor] = useState("");
-  const [image, setImage] = useState("");
+  const [blog, setBlog] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    // Mevcut blog verilerini getir
     const fetchBlog = async () => {
       try {
         const { data } = await API.get(`/blogs/${id}`);
-        setTitle(data.title);
-        setContent(data.content);
-        setAuthor(data.author);
-        setImage(data.image || "");
+        setBlog(data);
       } catch (err) {
         console.error("Error fetching blog details:", err);
         setError("Yazı yüklenemedi.");
+      } finally {
+        setLoading(false);
       }
     };
     fetchBlog();
   }, [id]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const updatedBlog = { title, content, author, image };
-      await API.put(`/blogs/${id}`, updatedBlog);
-      setSuccess("Yazı güncellendi.");
-      setError("");
-
-      // Yönlendirme
-      setTimeout(() => {
-        navigate("/blogs");
-      }, 2000);
-    } catch (err) {
-      console.error("Error updating blog:", err);
-      setError("Yazı güncellenemedi. Lütfen tekrar deneyin.");
-    }
+  const handleUpdate = async (values) => {
+    await API.put(`/blogs/${id}`, values);
+    navigate(`/blogs/${id}`);
   };
 
+  if (loading) return <PageLoader label="Yazı yükleniyor" />;
+
   return (
-    <div className="blog-edit-form">
-      <h2>Blog Düzenle</h2>
-      {error && <p className="error-message">{error}</p>}
-      {success && <p className="success-message">{success}</p>}
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="title">Başlık:</label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
+    <div className="container container-narrow page">
+      <Link to={`/blogs/${id}`} className="back-link">
+        <ArrowLeft size={18} aria-hidden="true" />
+        Yazıya dön
+      </Link>
+      <h1 className="page-title mb-4">Yazıyı düzenle</h1>
+      {error || !blog ? (
+        <Alert type="error">{error || "Yazı bulunamadı."}</Alert>
+      ) : (
+        <div className="card form-card">
+          <BlogForm
+            initialValues={{ title: blog.title, content: blog.content, author: blog.author, image: blog.image || "" }}
+            submitLabel="Değişiklikleri kaydet"
+            onSubmit={handleUpdate}
+            onCancel={() => navigate(`/blogs/${id}`)}
           />
         </div>
-        <div className="form-group">
-          <label htmlFor="content">İçerik:</label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-          ></textarea>
-        </div>
-        <div className="form-group">
-          <label htmlFor="author">Yazar:</label>
-          <input
-            type="text"
-            id="author"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="image">Görüntü URL (opsiyonel):</label>
-          <input
-            type="text"
-            id="image"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-          />
-        </div>
-        <button type="submit" className="btn-submit">
-          Güncelle
-        </button>
-      </form>
+      )}
     </div>
   );
 };

@@ -1,15 +1,32 @@
-import React, { useState } from "react";
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import Home from "./components/Home";
 import PetList from "./components/PetList";
 import PetDetails from "./components/PetDetails";
-import BlogList from "./components/BlogList"; // Blog listesi için component
-import BlogDetails from "./components/BlogDetails"; // Blog detayları için component
-import BlogEditForm from "./components/BlogEditForm"; // Blog düzenleme formu için component
-import AboutUs from "./components/AboutUs"; // About Us (Hakkımızda) componenti
+import BlogList from "./components/BlogList";
+import BlogDetails from "./components/BlogDetails";
+import BlogEditForm from "./components/BlogEditForm";
+import AboutUs from "./components/AboutUs";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import "./styles/Homepage.css";
+import NotFound from "./components/NotFound";
+
+// Sayfa değişince en üste kaydır ve odağı içeriğe taşı (klavye / ekran okuyucu kullanıcıları için)
+const RouteChangeHandler = () => {
+  const { pathname } = useLocation();
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    window.scrollTo(0, 0);
+    document.getElementById("main")?.focus({ preventScroll: true });
+  }, [pathname]);
+  return null;
+};
 
 const App = () => {
   // Oturum durumu ilk render'da okunur; böylece sayfa yenilenince login'e kısa yönlendirme olmaz
@@ -17,36 +34,26 @@ const App = () => {
 
   return (
     <Router>
+      <RouteChangeHandler />
+      <a href="#main" className="skip-link">
+        İçeriğe geç
+      </a>
       <Navbar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <div className="homepage">
-              <div className="banner">
-                <h1 className="banner-title">Pawfect Care'a Hoşgeldiniz 🐾</h1>
-                <p className="banner-subtitle">Evcil hayvanlarınızın yönetimi için nihai çözümünüz!</p>
-              </div>
-              <div className="about-section">
-                <h2>Neden Bizi Seçmelisiniz?</h2>
-                <p>
-                  Pawfect Care'de evcil hayvanlarınızın mutlu ve sağlıklı olmasını sağlıyoruz.
-                  Evcil dostlarımızın ihmal edilmelerinin önüne geçiyoruz.
-                  Sosyal yaşantınızla ilişkilendirme fırsatı sunuyoruz.
-                </p>
-              </div>
-            </div>
-          }
-        />
-        <Route path="/login" element={isLoggedIn ? <Navigate to="/pets" /> : <Login setIsLoggedIn={setIsLoggedIn} />} />
-        <Route path="/register" element={isLoggedIn ? <Navigate to="/pets" /> : <Register />} />
-        <Route path="/pets" element={isLoggedIn ? <PetList /> : <Navigate to="/login" />} />
-        <Route path="/pets/:id" element={isLoggedIn ? <PetDetails /> : <Navigate to="/login" />} />
-        <Route path="/blogs" element={<BlogList />} /> {/* Blog listesi rotası */}
-        <Route path="/blogs/:id" element={<BlogDetails />} /> {/* Blog detayları rotası */}
-        <Route path="/blogs/edit/:id" element={isLoggedIn ? <BlogEditForm /> : <Navigate to="/login" />} /> {/* Blog düzenleme rotası */}
-        <Route path="/about-us" element={<AboutUs />} /> {/* About Us rotası */}
-      </Routes>
+      <main id="main" tabIndex={-1}>
+        <Routes>
+          <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
+          <Route path="/login" element={isLoggedIn ? <Navigate to="/pets" /> : <Login setIsLoggedIn={setIsLoggedIn} />} />
+          <Route path="/register" element={isLoggedIn ? <Navigate to="/pets" /> : <Register />} />
+          <Route path="/pets" element={isLoggedIn ? <PetList /> : <Navigate to="/login" />} />
+          <Route path="/pets/:id" element={isLoggedIn ? <PetDetails /> : <Navigate to="/login" />} />
+          <Route path="/blogs" element={<BlogList />} />
+          <Route path="/blogs/:id" element={<BlogDetails />} />
+          <Route path="/blogs/edit/:id" element={isLoggedIn ? <BlogEditForm /> : <Navigate to="/login" />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+      <Footer isLoggedIn={isLoggedIn} />
     </Router>
   );
 };
