@@ -7,7 +7,7 @@ import { BlogCover } from "./BlogList";
 import EmptyState from "./ui/EmptyState";
 import { PageLoader } from "./ui/Loading";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { formatDate } from "../utils/format";
+import { formatTimestamp } from "../utils/format";
 
 const BlogDetails = () => {
   const { id } = useParams();
@@ -66,7 +66,7 @@ const BlogDetails = () => {
         <div className="article-meta">
           <span>
             {blog.author || "Bilinmeyen yazar"} ·{" "}
-            <time dateTime={blog.date}>{formatDate(blog.date || blog.createdAt)}</time>
+            <time dateTime={blog.date}>{formatTimestamp(blog.date || blog.createdAt)}</time>
           </span>
           {isOwner && (
             <Link to={`/blogs/edit/${blog._id}`} className="btn btn-secondary btn-sm">

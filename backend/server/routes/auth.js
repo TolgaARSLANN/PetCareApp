@@ -51,9 +51,11 @@ router.post('/register', authLimiter, async (req, res) => {
     if (existingUser) return res.status(400).json({ message: 'Email in use' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({ email: normalizeEmail(email), password: hashedPassword });
+    const user = await User.create({ email: normalizeEmail(email), password: hashedPassword });
 
-    res.status(201).json({ message: 'User registered' });
+    // Kayıt olan kişi doğrudan oturum açmış olur (aynı bilgileri bir de giriş formuna yazmasın)
+    startSession(res, user);
+    res.status(201).json({ userId: String(user._id) });
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ message: 'Server error' });
@@ -124,6 +126,35 @@ router.get('/account', authMiddleware, async (req, res) => {
     res.json({ email: user.email, petCount, blogCount });
   } catch (error) {
     console.error('Error fetching account:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Verilerimi indir (KVKK/GDPR veri taşınabilirliği): hesabın tüm verileri tek bir JSON dosyası olarak.
+// Parola özeti, oturum sürümü ve iç alanlar (__v, ownerId, authorId) dosyaya girmez.
+const withoutInternals = ({ __v, ownerId, authorId, ...rest }) => rest;
+
+router.get('/account/export', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('email').lean();
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+    const [pets, blogs] = await Promise.all([
+      Pet.find({ ownerId: req.userId }).lean(),
+      Blog.find({ authorId: req.userId }).sort({ date: -1 }).lean(),
+    ]);
+
+    const exportedAt = new Date();
+    const fileName = `pawfect-care-verilerim-${exportedAt.toISOString().slice(0, 10)}.json`;
+    res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      exportedAt: exportedAt.toISOString(),
+      account: { email: user.email },
+      pets: pets.map(withoutInternals),
+      blogs: blogs.map(withoutInternals),
+    });
+  } catch (error) {
+    console.error('Error exporting account data:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

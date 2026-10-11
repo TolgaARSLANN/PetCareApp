@@ -1,6 +1,6 @@
 import React, { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { formatKg, linearScale, niceTicks, timeTickFormatter, timeTicks } from "../utils/chart";
-import { formatDate } from "../utils/format";
+import { calendarDay, formatDate } from "../utils/format";
 
 const HEIGHT = 220;
 const MARGIN = { top: 16, right: 64, bottom: 30, left: 48 };
@@ -37,7 +37,7 @@ const WeightChart = ({ records = [] }) => {
   const points = useMemo(
     () =>
       records
-        .map((r) => ({ t: new Date(r.date).getTime(), weight: Number(r.weight), date: r.date }))
+        .map((r) => ({ t: calendarDay(r.date)?.getTime() ?? NaN, weight: Number(r.weight), date: r.date }))
         .filter((p) => Number.isFinite(p.t) && Number.isFinite(p.weight))
         .sort((a, b) => a.t - b.t),
     [records]

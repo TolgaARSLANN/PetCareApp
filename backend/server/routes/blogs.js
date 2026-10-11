@@ -31,6 +31,7 @@ router.get('/', async (req, res) => {
       .limit(limit);
     res.json({ items, page, limit, total, totalPages });
   } catch (err) {
+    console.error('Error listing blogs:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -43,6 +44,7 @@ router.get('/:id', async (req, res) => {
     if (!blog) return res.status(404).json({ error: 'Blog not found' });
     res.json(blog);
   } catch (err) {
+    console.error('Error fetching blog:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -58,6 +60,7 @@ router.post('/', authMiddleware, async (req, res) => {
     if (err.name === 'ValidationError') {
       return res.status(400).json({ error: 'Title, content and author are required (within length limits)' });
     }
+    console.error('Error creating blog:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -78,6 +81,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (err.name === 'ValidationError') {
       return res.status(400).json({ error: 'Title, content and author are required (within length limits)' });
     }
+    console.error('Error updating blog:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -90,6 +94,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (!deletedBlog) return res.status(404).json({ error: 'Blog not found or unauthorized' });
     res.json({ message: 'Blog deleted successfully' });
   } catch (err) {
+    console.error('Error deleting blog:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

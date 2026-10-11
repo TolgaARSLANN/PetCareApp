@@ -12,7 +12,8 @@
     "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm --prefix backend/server run dev\" \"npm --prefix frontend run dev\"",
     "start": "concurrently -k -n backend,frontend -c blue,magenta \"npm --prefix backend/server start\" \"npm --prefix frontend run dev\"",
     "test": "npm --prefix backend/server test && npm --prefix frontend test",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix backend/server run lint && npm --prefix frontend run lint"
   },
   "devDependencies": {
     "concurrently": "^9.2.5"

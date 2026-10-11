@@ -107,3 +107,16 @@ describe('getRecommendations', () => {
     expect(getRecommendations({ species: 'kedi' })).toContain('Düzenli Ağırlık Takibi için Dijital Tartı');
   });
 });
+
+// Bu test dosyası (tüm backend testleri gibi) America/Los_Angeles saat diliminde çalışır: tests/globalSetup.js
+describe('vaccine dates do not depend on the server time zone', () => {
+  test('a booster due today is "coming up" and shown as the stored day', () => {
+    expect(new Date(2026, 0, 1).getTimezoneOffset()).toBeGreaterThan(0); // gerçekten UTC'nin gerisinde
+    const pet = {
+      species: 'kedi',
+      vaccines: [{ vaccineName: 'Kuduz', vaccineDate: '2025-03-10', nextDueDate: '2026-03-10T00:00:00.000Z' }],
+    };
+    const notes = getRecommendations(pet, new Date('2026-03-10T12:00:00.000Z'));
+    expect(notes).toContain('Kuduz aşısının tekrar tarihi yaklaşıyor (10 Mart 2026)');
+  });
+});

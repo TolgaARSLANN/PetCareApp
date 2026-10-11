@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { DeviceMobile, Key, SignOut, Trash, UserCircle } from "@phosphor-icons/react";
+import { DeviceMobile, DownloadSimple, Key, SignOut, Trash, UserCircle } from "@phosphor-icons/react";
 import API from "../services/api";
 import { useAuth } from "../context/useAuth";
 import Alert from "./ui/Alert";
@@ -8,6 +8,7 @@ import Field from "./ui/Field";
 import PasswordInput from "./ui/PasswordInput";
 import { PageLoader, Spinner } from "./ui/Loading";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { todayInputValue } from "../utils/format";
 import { isPasswordTooLong, PASSWORD_TOO_LONG } from "../utils/validation";
 
 const MIN_PASSWORD_LENGTH = 6;
@@ -118,6 +119,60 @@ const ChangePassword = () => {
           </button>
         </div>
       </form>
+    </section>
+  );
+};
+
+// Verilerimi indir: hesabın tüm verileri tek bir JSON dosyası (KVKK/GDPR veri taşınabilirliği)
+const ExportData = () => {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const download = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await API.get("/auth/account/export", { responseType: "blob" });
+      // Dosya adında kullanıcının yerel tarihi (sunucununki UTC'dir; gece yarısından sonra bir gün geride kalır)
+      const fileName = `pawfect-care-verilerim-${todayInputValue()}.json`;
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setError("Verileriniz indirilemedi. Lütfen tekrar deneyin.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="card form-card" aria-labelledby="export-title">
+      <div className="section-card-head">
+        <span className="icon-tile">
+          <DownloadSimple size={22} weight="duotone" aria-hidden="true" />
+        </span>
+        <h2 id="export-title" className="card-title">
+          Verilerim
+        </h2>
+      </div>
+      <p className="text-muted">
+        Hesap bilginizi, evcil dostlarınızı (sağlık, aşı, kilo, ilaç, randevu ve acil durum kayıtlarıyla) ve blog
+        yazılarınızı tek bir dosya (JSON) olarak indirin. Hesabınızı silmeden önce bir kopyasını almak için de
+        kullanabilirsiniz.
+      </p>
+      {error && <Alert type="error">{error}</Alert>}
+      <div className="form-actions">
+        <button type="button" className="btn btn-secondary" onClick={download} disabled={busy}>
+          {busy ? <Spinner size={16} /> : <DownloadSimple size={18} aria-hidden="true" />}
+          Verilerimi indir
+        </button>
+      </div>
     </section>
   );
 };
@@ -305,6 +360,7 @@ const Account = () => {
         <>
           <ChangePassword />
           <SignOutEverywhere />
+          <ExportData />
           <DeleteAccount petCount={account.petCount} blogCount={account.blogCount} />
         </>
       )}

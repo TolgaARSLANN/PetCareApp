@@ -84,6 +84,30 @@ describe("BlogList pagination", () => {
     await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("?page=3"));
   });
 
+  test("a slow answer for a page the user already left does not overwrite the new page", async () => {
+    const user = userEvent.setup();
+    let releasePage2;
+    vi.mocked(API.get).mockImplementation((url, config) => {
+      if (url === "/auth/me") return Promise.resolve({ data: { userId: null } });
+      const page = config.params.page;
+      const answer = { data: { items: posts(page), page, limit: 9, total: 27, totalPages: 3 } };
+      // 2. sayfanın yanıtı, kullanıcı 3. sayfaya geçtikten sonra gelir
+      if (page === 2) return new Promise((resolve) => (releasePage2 = () => resolve(answer)));
+      return Promise.resolve(answer);
+    });
+    renderList();
+    await screen.findByText("Yazı 1");
+
+    await user.click(screen.getByRole("button", { name: "Sayfa 2" }));
+    await user.click(screen.getByRole("button", { name: "Sayfa 3" }));
+    expect(await screen.findByText("Yazı 3")).toBeInTheDocument();
+
+    releasePage2();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.getByText("Yazı 3")).toBeInTheDocument();
+    expect(screen.queryByText("Yazı 2")).not.toBeInTheDocument();
+  });
+
   test("no page navigation when everything fits on one page", async () => {
     serve(1);
     renderList();

@@ -11,15 +11,16 @@ const Navbar = () => {
   const { isLoggedIn, checking, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [open, setOpen] = useState(false);
-
-  // Sayfa değişince mobil menüyü kapat
-  useEffect(() => setOpen(false), [location.pathname]);
+  // Mobil menü, açıldığı sayfaya bağlıdır: başka sayfaya geçilince kendiliğinden kapalı sayılır
+  // (sayfa değişiminde efektle kapatmak bir render boyunca açık bırakırdı)
+  const [openOnPath, setOpenOnPath] = useState(null);
+  const open = openOnPath === location.pathname;
+  const setOpen = (value) => setOpenOnPath(value ? location.pathname : null);
 
   // Escape ile mobil menüyü kapat
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    const onKey = (e) => e.key === "Escape" && setOpenOnPath(null);
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
@@ -94,7 +95,7 @@ const Navbar = () => {
           aria-expanded={open}
           aria-controls="main-menu"
           aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => setOpen(!open)}
         >
           {open ? <X size={24} aria-hidden="true" /> : <List size={24} aria-hidden="true" />}
         </button>

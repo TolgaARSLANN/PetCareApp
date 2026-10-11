@@ -1,10 +1,10 @@
 import React from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { screen } from "@testing-library/react";
 import API from "../services/api";
 import { AuthProvider } from "../context/AuthContext";
 import BlogEditForm from "./BlogEditForm";
+import { renderWithRouter } from "../test/renderWithRouter";
 
 vi.mock("../services/api", () => ({ default: { get: vi.fn(), put: vi.fn() } }));
 
@@ -14,15 +14,10 @@ const renderAs = (userId) => {
   vi.mocked(API.get).mockImplementation((url) =>
     Promise.resolve(url === "/auth/me" ? { data: { userId } } : { data: post })
   );
-  render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={["/blogs/edit/b1"]}>
-        <Routes>
-          <Route path="/blogs/edit/:id" element={<BlogEditForm />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
+  renderWithRouter([{ path: "/blogs/edit/:id", element: <BlogEditForm /> }], {
+    initialEntries: ["/blogs/edit/b1"],
+    wrapper: AuthProvider,
+  });
 };
 
 describe("BlogEditForm", () => {

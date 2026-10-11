@@ -125,3 +125,39 @@ describe('DELETE /api/auth/account', () => {
     expect((await request(app).delete('/api/auth/account').send({ password: 'x' })).status).toBe(401);
   });
 });
+
+describe('GET /api/auth/account/export', () => {
+  const chain = (result) => ({ select: () => ({ lean: () => Promise.resolve(result) }) });
+
+  test('downloads all of the account data as a JSON file, without internal fields', async () => {
+    const userId = newId();
+    jest.spyOn(User, 'findById').mockReturnValue(chain({ email: 'a@b.com', password: 'hash', tokenVersion: 3 }));
+    const petFind = jest.spyOn(Pet, 'find').mockReturnValue({
+      lean: () =>
+        Promise.resolve([
+          { _id: 'p1', name: 'Pamuk', ownerId: userId, __v: 2, healthRecords: [{ notes: 'kontrol' }] },
+        ]),
+    });
+    const blogFind = jest.spyOn(Blog, 'find').mockReturnValue({
+      sort: () => ({ lean: () => Promise.resolve([{ _id: 'b1', title: 'Yazı', authorId: userId, __v: 0 }]) }),
+    });
+
+    const res = await request(app).get('/api/auth/account/export').set('Authorization', `Bearer ${tokenFor(userId)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-disposition']).toMatch(/attachment; filename="pawfect-care-verilerim-\d{4}-\d{2}-\d{2}\.json"/);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.body.account).toEqual({ email: 'a@b.com' });
+    expect(res.body.pets).toEqual([{ _id: 'p1', name: 'Pamuk', healthRecords: [{ notes: 'kontrol' }] }]);
+    expect(res.body.blogs).toEqual([{ _id: 'b1', title: 'Yazı' }]);
+    expect(JSON.stringify(res.body)).not.toMatch(/hash|tokenVersion|ownerId|authorId/);
+    // Yalnızca bu kullanıcının verileri
+    expect(String(petFind.mock.calls[0][0].ownerId)).toBe(String(userId));
+    expect(String(blogFind.mock.calls[0][0].authorId)).toBe(String(userId));
+  });
+
+  test('requires a session', async () => {
+    const res = await request(app).get('/api/auth/account/export');
+    expect(res.status).toBe(401);
+  });
+});

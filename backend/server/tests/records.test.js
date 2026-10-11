@@ -166,3 +166,18 @@ describe('record edit and delete routes', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('adding records', () => {
+  test('every record type answers with its updated list, health records included', async () => {
+    const userId = newId();
+    const { pet } = mockPet(userId);
+    const res = await request(app)
+      .post(`/api/pets/${pet._id}/health-records`)
+      .set('Authorization', `Bearer ${tokenFor(userId)}`)
+      .send({ date: '2026-03-10', notes: 'Genel kontrol' });
+
+    expect(res.status).toBe(201);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body[0].notes).toBe('Genel kontrol');
+  });
+});

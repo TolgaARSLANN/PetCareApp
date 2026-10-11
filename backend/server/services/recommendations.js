@@ -116,8 +116,14 @@ function getRecommendations(pet, now = new Date()) {
 const DUE_SOON_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// Takvim günleri (doğum, aşı, randevu...) o günün UTC gece yarısı olarak saklanır. Biçimlendirme ve
+// "bugün" hesabı UTC ile yapılır, böylece sonuç sunucunun saat dilimine bağlı değildir.
 const formatDateTr = (date) =>
-  new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const utcDay = (moment) => {
+  const d = new Date(moment);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+};
 
 // Her aşının yalnızca en son yapılan kaydına bakılır: yenilenmiş bir aşının eski kaydındaki
 // geçmiş tekrar tarihi uyarı üretmez. Geciken ve 30 gün içinde gelen tekrarlar bildirilir.
@@ -134,14 +140,13 @@ function vaccineRecommendations(vaccines = [], now = new Date()) {
       if (!current || byDateAsc([current, v])[1] === v) latestByName.set(key, v);
     });
 
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
+  const today = utcDay(now);
 
   const notes = [];
   latestByName.forEach((v) => {
     if (!v.nextDueDate) return;
-    const due = new Date(v.nextDueDate);
-    if (Number.isNaN(due.getTime())) return;
+    if (Number.isNaN(new Date(v.nextDueDate).getTime())) return;
+    const due = utcDay(v.nextDueDate);
     if (due < today) {
       notes.push(`${v.vaccineName} aşısının tekrar tarihi geçti (${formatDateTr(due)}): veterinerinizden randevu alın`);
     } else if (due - today <= DUE_SOON_DAYS * DAY_MS) {

@@ -26,7 +26,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 | Feature | Description |
 |---|---|
-| 🔐 **Accounts** | Register and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the password (which signs out other devices), sign out of all devices, or permanently delete the account with all its pets and posts |
+| 🔐 **Accounts** | Register and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the password (which signs out other devices), sign out of all devices, download all of your data as a JSON file, or permanently delete the account with all its pets and posts |
 | 🐶 **Pet Profiles** | Add, edit and delete pets; every pet is visible only to its owner |
 | 🏥 **Health Records** | Log dated health notes for each pet; every record (health, vaccine, weight, medication, appointment, contact) can be edited or deleted |
 | 💉 **Vaccines** | Record vaccines with the date given and the booster due date; overdue and upcoming (30 days) boosters are flagged |
@@ -43,7 +43,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 - **Frontend:** React 18, Vite, React Router, Axios, Phosphor Icons, hand-written CSS design system (no UI framework)
 - **Backend:** Node.js, Express 4, Mongoose, JSON Web Tokens, bcrypt, dotenv
-- **Testing:** Jest + Supertest (backend), Vitest + Testing Library (frontend), GitHub Actions CI
+- **Testing:** Jest + Supertest (backend), Vitest + Testing Library (frontend), ESLint, GitHub Actions CI
 - **Database:** MongoDB
 
 ---
@@ -118,6 +118,7 @@ The app opens at `http://localhost:3000` and the API runs at `http://localhost:5
 | `npm run dev` | Backend (restarts on file changes) + frontend dev server |
 | `npm start` | Backend without file watching + frontend dev server |
 | `npm test` | Backend and frontend tests |
+| `npm run lint` | ESLint for backend and frontend (also runs in CI) |
 | `npm run build` | Frontend production build |
 
 The sections below describe running each part on its own.
@@ -214,11 +215,12 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/auth/register` | Create an account (`email`, `password`) |
+| `POST` | `/api/auth/register` | Create an account (`email`, `password`); logs the new user in (sets the session cookie) and returns `{ userId }` |
 | `POST` | `/api/auth/login` | Log in; sets the session cookie and returns `{ userId }` |
 | `GET` | `/api/auth/me` | Current user: `{ userId }`, or `{ userId: null }` when logged out |
 | `POST` | `/api/auth/logout` | Clear the session cookie |
 | `GET` | `/api/auth/account` 🔒 | `{ email, petCount, blogCount }` |
+| `GET` | `/api/auth/account/export` 🔒 | Download all account data (email, pets with every record, blog posts) as a JSON file; no password hash or internal fields |
 | `POST` | `/api/auth/logout-all` 🔒 | Sign out of every device, including this one |
 | `PUT` | `/api/auth/password` 🔒 | Change the password (`currentPassword`, `newPassword`); signs out other devices and renews this session's cookie |
 | `DELETE` | `/api/auth/account` 🔒 | Delete the account with all its pets and posts (`password` to confirm); clears the session cookie |
@@ -234,7 +236,7 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 | `GET` | `/api/pets/:id` | Get one pet |
 | `PUT` | `/api/pets/:id` | Update a pet |
 | `DELETE` | `/api/pets/:id` | Delete a pet |
-| `GET` / `POST` | `/api/pets/:id/health-records` | List / add health records |
+| `GET` / `POST` | `/api/pets/:id/health-records` | List / add health records (adding returns the updated list, like the other record types) |
 | `GET` / `POST` | `/api/pets/:id/vaccines` | List / add vaccines (`vaccineName`, `vaccineDate`, optional `nextDueDate`, `notes`) |
 | `GET` / `POST` | `/api/pets/:id/weight` | List / add weight measurements |
 | `GET` / `POST` | `/api/pets/:id/medications` | List / add medications |

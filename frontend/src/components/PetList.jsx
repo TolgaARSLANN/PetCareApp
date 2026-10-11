@@ -24,23 +24,33 @@ const PetList = () => {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  const fetchPets = async () => {
-    setLoading(true);
-    setLoadError("");
-    try {
-      const { data } = await API.get("/pets");
-      setPets(data);
-    } catch (error) {
-      console.error(error);
-      setLoadError("Evcil dostlarınız yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Listeyi yeniden çekmek için artırılır (tekrar dene)
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    fetchPets();
-  }, []);
+    let ignore = false;
+    API.get("/pets")
+      .then(({ data }) => {
+        if (ignore) return;
+        setLoadError("");
+        setPets(data);
+      })
+      .catch((error) => {
+        if (ignore) return;
+        console.error(error);
+        setLoadError("Evcil dostlarınız yüklenemedi.");
+      })
+      .finally(() => !ignore && setLoading(false));
+    return () => {
+      ignore = true;
+    };
+  }, [reloadKey]);
+
+  const retry = () => {
+    setLoadError("");
+    setLoading(true);
+    setReloadKey((k) => k + 1);
+  };
 
   const openNewForm = () => {
     setSelectedPet(null);
@@ -111,7 +121,13 @@ const PetList = () => {
 
       {formOpen && (
         <div className="mb-6">
-          <PetForm selectedPet={selectedPet} onSaved={handleSaved} onCancel={closeForm} />
+          <PetForm
+            // Düzenlenen hayvan değişince form sıfırdan kurulur (değerleri efektle kopyalamak yerine)
+            key={selectedPet?._id ?? "new"}
+            selectedPet={selectedPet}
+            onSaved={handleSaved}
+            onCancel={closeForm}
+          />
         </div>
       )}
 
@@ -122,7 +138,7 @@ const PetList = () => {
       ) : loadError ? (
         <Alert type="error">
           {loadError}{" "}
-          <button type="button" className="link-button" onClick={fetchPets}>
+          <button type="button" className="link-button" onClick={retry}>
             Tekrar dene
           </button>
         </Alert>
