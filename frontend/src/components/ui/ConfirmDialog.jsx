@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useId, useRef } from "react";
 import { WarningCircle } from "@phosphor-icons/react";
 import { Spinner } from "./Loading";
 
@@ -16,6 +16,9 @@ const ConfirmDialog = ({
   onCancel,
 }) => {
   const ref = useRef(null);
+  // Aynı sayfada birden çok pencere olabildiği için kimlikler benzersiz olmalı
+  const titleId = useId();
+  const messageId = useId();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -28,8 +31,8 @@ const ConfirmDialog = ({
     <dialog
       ref={ref}
       className="dialog"
-      aria-labelledby="confirm-title"
-      aria-describedby="confirm-message"
+      aria-labelledby={titleId}
+      aria-describedby={messageId}
       onCancel={(e) => {
         e.preventDefault();
         if (!busy) onCancel();
@@ -43,10 +46,10 @@ const ConfirmDialog = ({
         <span className="dialog-icon">
           <WarningCircle size={24} weight="fill" aria-hidden="true" />
         </span>
-        <h2 id="confirm-title" className="dialog-title">
+        <h2 id={titleId} className="dialog-title">
           {title}
         </h2>
-        <p id="confirm-message" className="dialog-message">
+        <p id={messageId} className="dialog-message">
           {message}
         </p>
         {error && (
