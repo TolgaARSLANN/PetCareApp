@@ -13,6 +13,7 @@ import {
 import API from "../services/api";
 import PetRecommendations from "./PetRecommendations";
 import RecordSection from "./RecordSection";
+import WeightChart from "./WeightChart";
 import Alert from "./ui/Alert";
 import EmptyState from "./ui/EmptyState";
 import Field from "./ui/Field";
@@ -271,6 +272,7 @@ const PetDetails = () => {
           initialValues={{ date: today, weight: "" }}
           toFormValues={(w) => ({ date: toDateInput(w.date), weight: w.weight ?? "" })}
           api={recordApi("weight", "weightHistory")}
+          aboveList={<WeightChart records={pet.weightHistory} />}
           renderFields={(v, set) => (
             <div className="form-grid form-grid-2">
               <Field id="weight-date" label="Tarih" required>

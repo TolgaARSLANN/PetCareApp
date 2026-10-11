@@ -22,6 +22,7 @@ const RecordSection = ({
   initialValues,
   toFormValues,
   renderFields,
+  aboveList, // listenin üstünde gösterilecek ek içerik (ör. kilo grafiği)
   api, // { add(values), update(recordId, values), remove(recordId) } · yoksa bölüm salt okunur
 }) => {
   const [mode, setMode] = useState(null); // null | "add" | düzenlenen kaydın _id'si
@@ -159,6 +160,8 @@ const RecordSection = ({
       )}
 
       {mode === "add" && renderForm(addLabel)}
+
+      {records.length > 0 && aboveList}
 
       {records.length > 0 ? (
         <ul className="record-list">
