@@ -4,6 +4,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const config = require('../config');
+const { getUserId } = require('../middleware/authMiddleware');
+const { authLimiter } = require('../middleware/rateLimits');
+const { AUTH_COOKIE, cookieOptions } = require('../middleware/authCookie');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
@@ -20,7 +23,7 @@ function validateCredentials(email, password) {
 }
 
 // Kullanıcı Kaydı
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const validationError = validateCredentials(email, password);
@@ -41,7 +44,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Kullanıcı Girişi
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (typeof email !== 'string' || typeof password !== 'string') {
@@ -57,11 +60,28 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ userId: user._id }, config.jwtSecret, {
       expiresIn: config.jwtExpiresIn,
     });
-    res.json({ token });
+    // The token goes into an httpOnly cookie that expires together with the token;
+    // it is not returned in the body, so page scripts never see it.
+    const { exp } = jwt.decode(token);
+    res.cookie(AUTH_COOKIE, token, { ...cookieOptions, expires: new Date(exp * 1000) });
+    res.json({ userId: String(user._id) });
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// Oturum kontrolü: giriş yapan kullanıcının ID'si, oturum yoksa null.
+// Ziyaretçi için de 200 döner; "kimse" geçerli bir cevaptır (her sayfa açılışında 401 hatası üretmez).
+router.get('/me', (req, res) => {
+  const userId = getUserId(req);
+  res.json({ userId: userId ? String(userId) : null });
+});
+
+// Çıkış: oturum çerezini siler
+router.post('/logout', (req, res) => {
+  res.clearCookie(AUTH_COOKIE, cookieOptions);
+  res.status(204).end();
 });
 
 module.exports = router;

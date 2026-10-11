@@ -11,6 +11,7 @@ import {
   UsersThree,
 } from "@phosphor-icons/react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { useAuth } from "../context/useAuth";
 import heroLarge from "../assets/hero-pets.jpg";
 import heroSmall from "../assets/hero-pets-sm.jpg";
 
@@ -53,7 +54,8 @@ const STEPS = [
   { title: "Takibe başlayın", text: "Sağlık, ilaç ve randevu kayıtlarını ekledikçe tüm geçmiş elinizin altında." },
 ];
 
-const Home = ({ isLoggedIn }) => {
+const Home = () => {
+  const { isLoggedIn } = useAuth();
   useDocumentTitle(null);
   const primaryCta = isLoggedIn
     ? { to: "/pets", label: "Evcil dostlarıma git" }

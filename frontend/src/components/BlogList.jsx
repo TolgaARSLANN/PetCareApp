@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Article, NotePencil, PencilSimple, Trash } from "@phosphor-icons/react";
 import API from "../services/api";
-import { getCurrentUserId } from "../services/auth";
+import { useAuth } from "../context/useAuth";
 import BlogForm from "./BlogForm";
 import Alert from "./ui/Alert";
 import ConfirmDialog from "./ui/ConfirmDialog";
@@ -36,7 +36,7 @@ const BlogList = () => {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const navigate = useNavigate();
-  const currentUserId = getCurrentUserId();
+  const currentUserId = useAuth().user?.id;
 
   const fetchBlogs = async () => {
     setError(null);

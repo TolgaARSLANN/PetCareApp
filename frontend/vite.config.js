@@ -3,9 +3,11 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  // Backend CORS ayarı (CLIENT_ORIGIN) varsayılan olarak bu portu bekliyor
-  server: { port: 3000 },
-  preview: { port: 3000 },
+  // /api istekleri backend'e yönlendirilir: tarayıcı için API ve uygulama aynı adreste olur,
+  // böylece oturum çerezi (SameSite=Strict) sorunsuz gönderilir. Yayında aynı yönlendirme
+  // barındırma servisinde yapılmalıdır (README > Deployment).
+  server: { port: 3000, proxy: { "/api": "http://localhost:5000" } },
+  preview: { port: 3000, proxy: { "/api": "http://localhost:5000" } },
   build: { outDir: "build" },
   test: {
     environment: "jsdom",

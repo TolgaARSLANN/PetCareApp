@@ -4,20 +4,26 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import API from "../services/api";
+import { AuthProvider } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import Login from "./Login";
 
-vi.mock("../services/api", () => ({ default: { post: vi.fn() } }));
+vi.mock("../services/api", () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
-const renderLogin = (setIsLoggedIn = vi.fn()) => {
+const WhoAmI = () => <p>Kullanıcı: {useAuth().user?.id}</p>;
+
+const renderLogin = (state) => {
   render(
-    <MemoryRouter initialEntries={["/login"]}>
-      <Routes>
-        <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
-        <Route path="/pets" element={<p>Evcil dostlar sayfası</p>} />
-      </Routes>
-    </MemoryRouter>
+    <AuthProvider>
+      <MemoryRouter initialEntries={[{ pathname: "/login", state }]}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/pets" element={<WhoAmI />} />
+          <Route path="/pets/p1" element={<p>Pamuk sayfası</p>} />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>
   );
-  return setIsLoggedIn;
 };
 
 const fillAndSubmit = async (user) => {
@@ -28,21 +34,32 @@ const fillAndSubmit = async (user) => {
 
 describe("Login", () => {
   beforeEach(() => {
+    vi.mocked(API.get).mockReset().mockResolvedValue({ data: { userId: null } }); // oturum yok
     vi.mocked(API.post).mockReset();
     localStorage.clear();
   });
 
-  test("stores the token and goes to the pets page", async () => {
+  test("starts the session and goes to the pets page without storing a token", async () => {
     const user = userEvent.setup();
-    vi.mocked(API.post).mockResolvedValue({ data: { token: "abc" } });
-    const setIsLoggedIn = renderLogin();
+    vi.mocked(API.post).mockResolvedValue({ data: { userId: "u1" } });
+    renderLogin();
 
     await fillAndSubmit(user);
 
     expect(API.post).toHaveBeenCalledWith("/auth/login", { email: "a@b.com", password: "secret1" });
-    expect(localStorage.getItem("token")).toBe("abc");
-    expect(setIsLoggedIn).toHaveBeenCalledWith(true);
-    expect(await screen.findByText("Evcil dostlar sayfası")).toBeInTheDocument();
+    expect(await screen.findByText("Kullanıcı: u1")).toBeInTheDocument();
+    // Token sayfa kodunun erişebildiği bir yerde tutulmaz
+    expect(localStorage.length).toBe(0);
+  });
+
+  test("returns to the page that required login", async () => {
+    const user = userEvent.setup();
+    vi.mocked(API.post).mockResolvedValue({ data: { userId: "u1" } });
+    renderLogin({ from: "/pets/p1" });
+
+    await fillAndSubmit(user);
+
+    expect(await screen.findByText("Pamuk sayfası")).toBeInTheDocument();
   });
 
   test("explains wrong credentials", async () => {
@@ -53,7 +70,16 @@ describe("Login", () => {
     await fillAndSubmit(user);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("E-posta veya parola hatalı");
-    expect(localStorage.getItem("token")).toBeNull();
+  });
+
+  test("explains the attempt limit", async () => {
+    const user = userEvent.setup();
+    vi.mocked(API.post).mockRejectedValue({ response: { status: 429 } });
+    renderLogin();
+
+    await fillAndSubmit(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("15 dakika sonra");
   });
 
   test("explains when the server cannot be reached", async () => {

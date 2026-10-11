@@ -55,11 +55,87 @@ describe('POST /api/auth/login', () => {
     expect(res.status).toBe(400);
   });
 
-  test('returns a token signed with the configured secret', async () => {
+  test('sets the token in a secure httpOnly cookie, not in the body', async () => {
     const password = await bcrypt.hash('correct', 4);
     jest.spyOn(User, 'findOne').mockResolvedValue({ _id: 'u1', password });
     const res = await request(app).post('/api/auth/login').send({ email: 'a@b.com', password: 'correct' });
+
     expect(res.status).toBe(200);
-    expect(jwt.verify(res.body.token, 'test-secret').userId).toBe('u1');
+    expect(res.body).toEqual({ userId: 'u1' });
+    expect(res.body.token).toBeUndefined();
+
+    const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).toMatch(/SameSite=Strict/i);
+    expect(cookie).toMatch(/Path=\/api/);
+    expect(cookie).toMatch(/Expires=/);
+    const token = cookie.split(';')[0].slice('token='.length);
+    expect(jwt.verify(token, 'test-secret').userId).toBe('u1');
+  });
+});
+
+describe('session endpoints', () => {
+  const tokenCookie = (userId) => `token=${jwt.sign({ userId }, 'test-secret')}`;
+
+  test('GET /me returns the user id from the cookie', async () => {
+    const res = await request(app).get('/api/auth/me').set('Cookie', tokenCookie('u42'));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ userId: 'u42' });
+  });
+
+  test('GET /me without a session answers "nobody"', async () => {
+    const res = await request(app).get('/api/auth/me');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ userId: null });
+  });
+
+  test('GET /me does not trust a forged token', async () => {
+    const forged = `token=${jwt.sign({ userId: 'u42' }, 'not-the-secret')}`;
+    const res = await request(app).get('/api/auth/me').set('Cookie', forged);
+    expect(res.body).toEqual({ userId: null });
+  });
+
+  test('protected routes reject a forged token', async () => {
+    const forged = `token=${jwt.sign({ userId: 'u42' }, 'not-the-secret')}`;
+    const res = await request(app).get('/api/pets').set('Cookie', forged);
+    expect(res.status).toBe(401);
+  });
+
+  test('protected routes accept the cookie', async () => {
+    jest.spyOn(require('../models/Pet'), 'find').mockResolvedValue([]);
+    const res = await request(app).get('/api/pets').set('Cookie', tokenCookie('507f1f77bcf86cd799439011'));
+    expect(res.status).toBe(200);
+  });
+
+  test('POST /logout clears the cookie', async () => {
+    const res = await request(app).post('/api/auth/logout').set('Cookie', tokenCookie('u42'));
+    expect(res.status).toBe(204);
+    const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
+    expect(cookie).toMatch(/Expires=Thu, 01 Jan 1970/);
+  });
+});
+
+describe('hardening', () => {
+  test('sends security headers', async () => {
+    const res = await request(app).get('/');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(res.headers['content-security-policy']).toBeDefined();
+    expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+
+  test('malformed JSON is a 400, not a 500', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"email": ');
+    expect(res.status).toBe(400);
+  });
+
+  test('rejects an oversized body', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'a@b.com', password: 'x'.repeat(200 * 1024) });
+    expect(res.status).toBe(413);
   });
 });
