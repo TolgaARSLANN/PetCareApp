@@ -4,8 +4,8 @@
 .hero {
   padding-block: var(--space-12) var(--space-16);
   background:
-    radial-gradient(60% 80% at 100% 0%, rgba(20, 184, 166, 0.12) 0%, transparent 60%),
-    radial-gradient(50% 60% at 0% 100%, rgba(234, 88, 12, 0.08) 0%, transparent 60%);
+    radial-gradient(60% 80% at 100% 0%, var(--hero-glow-primary) 0%, transparent 60%),
+    radial-gradient(50% 60% at 0% 100%, var(--hero-glow-accent) 0%, transparent 60%);
 }
 
 .hero-inner {
@@ -159,7 +159,7 @@
   margin-bottom: var(--space-2);
   border-radius: var(--radius-full);
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-weight: 800;
 }
 
@@ -179,7 +179,8 @@
   gap: var(--space-6);
   padding: var(--space-10) var(--space-8);
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary) 55%, #0d9488 100%);
+  /* Marka bandı: her iki temada aynı koyu teal, üzerindeki metin beyaz */
+  background: linear-gradient(135deg, #115e59 0%, #0f766e 55%, #0d9488 100%);
   color: #fff;
   box-shadow: var(--shadow-lg);
 }
@@ -297,18 +298,18 @@
 }
 
 .avatar-kedi {
-  background: #fff7ed;
-  color: #c2410c;
+  background: var(--avatar-cat-bg);
+  color: var(--avatar-cat-fg);
 }
 
 .avatar-köpek {
-  background: #fef3c7;
-  color: #a16207;
+  background: var(--avatar-dog-bg);
+  color: var(--avatar-dog-fg);
 }
 
 .avatar-kuş {
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--avatar-bird-bg);
+  color: var(--avatar-bird-fg);
 }
 
 .avatar-lg {
@@ -460,8 +461,8 @@
   gap: var(--space-4);
   padding: var(--space-6);
   margin-bottom: var(--space-6);
-  background: linear-gradient(180deg, #fffaf5 0%, var(--color-surface) 100%);
-  border-color: #fed7aa;
+  background: linear-gradient(180deg, var(--color-rec-bg) 0%, var(--color-surface) 100%);
+  border-color: var(--color-rec-border);
 }
 
 .section-card-head {
@@ -641,7 +642,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-tint) 0%, var(--color-accent-soft) 100%);
+  background: linear-gradient(135deg, var(--color-primary-tint) 0%, var(--cover-placeholder-end) 100%);
   color: var(--color-primary);
 }
 

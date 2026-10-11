@@ -13,7 +13,8 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #14b8a6 100%);
+  /* Marka işareti her iki temada aynı kalır */
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
   color: #fff;
   box-shadow: 0 2px 6px rgba(15, 118, 110, 0.3);
 }
@@ -42,7 +43,7 @@
   position: sticky;
   top: 0;
   z-index: var(--z-header);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-header-bg);
   backdrop-filter: saturate(180%) blur(8px);
   border-bottom: 1px solid var(--color-border);
 }
@@ -50,9 +51,19 @@
 .navbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-2);
   min-height: 68px;
+}
+
+.theme-toggle {
+  margin-left: auto;
+  color: var(--color-text);
+}
+
+@media (min-width: 900px) {
+  .theme-toggle {
+    margin-left: 0;
+  }
 }
 
 .navbar-brand {
@@ -159,7 +170,7 @@
 /* ---------- Alt bilgi ---------- */
 .site-footer {
   margin-top: auto;
-  background: #0b2a28;
+  background: var(--color-footer-bg);
   color: #cbd5e1;
 }
 

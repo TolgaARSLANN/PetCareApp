@@ -22,6 +22,7 @@
   --color-text-subtle: #64748b;    /* slate-500 · 4.8:1 */
   --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
+  --color-input-border: #7d8a9c;   /* form alanı sınırı · zeminle en az 3:1 */
 
   --color-danger: #dc2626;
   --color-danger-hover: #b91c1c;
@@ -34,6 +35,25 @@
   --color-info-text: #1d4ed8;
   --color-info-soft: #eff6ff;
   --color-info-border: #bfdbfe;
+
+  --color-on-primary: #ffffff;     /* birincil zemin üzerindeki metin */
+  --color-header-bg: rgba(255, 255, 255, 0.92);
+  --color-footer-bg: #0b2a28;
+  --color-backdrop: rgba(15, 23, 42, 0.55);
+  --color-skeleton: #eef2f1;
+  --color-skeleton-shine: #f6f8f8;
+  --cover-placeholder-end: var(--color-accent-soft);
+  --hero-glow-primary: rgba(20, 184, 166, 0.12);
+  --hero-glow-accent: rgba(234, 88, 12, 0.08);
+  --color-rec-bg: #fffaf5;
+  --color-rec-border: #fed7aa;
+  --avatar-cat-bg: #fff7ed;
+  --avatar-cat-fg: #c2410c;
+  --avatar-dog-bg: #fef3c7;
+  --avatar-dog-fg: #a16207;
+  --avatar-bird-bg: #eff6ff;
+  --avatar-bird-fg: #1d4ed8;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 256 256'%3E%3Cpath fill='%23475569' d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E");
 
   /* Tipografi */
   --font-heading: "Varela Round", "Nunito Sans", system-ui, sans-serif;
@@ -78,6 +98,66 @@
   --z-dialog: 100;
 
   color-scheme: light;
+}
+
+/* Koyu tema: index.html'deki betik, sistem tercihine ya da kullanıcının seçimine göre
+   <html data-theme="dark"> ayarlar. Metin renkleri koyu yüzeylerde de en az 4.5:1 kontrast hedefler. */
+:root[data-theme="dark"] {
+  --color-primary: #2dd4bf;        /* teal-400 · koyu metinle 9:1 */
+  --color-primary-hover: #5eead4;
+  --color-primary-soft: #134e4a;
+  --color-primary-tint: #12302d;
+  --color-accent: #f97316;
+  --color-accent-text: #fb923c;
+  --color-accent-soft: #3a2414;
+
+  --color-bg: #0e1615;
+  --color-surface: #151f1e;
+  --color-surface-muted: #1c2827;
+  --color-text: #e6edec;
+  --color-text-muted: #a5b4b2;
+  --color-text-subtle: #8b9c9a;
+  --color-border: #263432;
+  --color-border-strong: #384846;
+  --color-input-border: #6b7f7c;
+
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-text: #fca5a5;
+  --color-danger-soft: #2a1414;
+  --color-danger-border: #7f1d1d;
+  --color-success-text: #86efac;
+  --color-success-soft: #0f2618;
+  --color-success-border: #166534;
+  --color-info-text: #93c5fd;
+  --color-info-soft: #0f1d33;
+  --color-info-border: #1e3a8a;
+
+  --color-on-primary: #042f2e;
+  --color-header-bg: rgba(14, 22, 21, 0.88);
+  --color-footer-bg: #081110;
+  --color-backdrop: rgba(0, 0, 0, 0.7);
+  --color-skeleton: #1c2827;
+  --color-skeleton-shine: #243230;
+  --cover-placeholder-end: #1c2827;
+  --hero-glow-primary: rgba(45, 212, 191, 0.1);
+  --hero-glow-accent: rgba(249, 115, 22, 0.03);
+  --color-rec-bg: #1f1912;
+  --color-rec-border: #5c3a1a;
+  --avatar-cat-bg: #3a2414;
+  --avatar-cat-fg: #fdba74;
+  --avatar-dog-bg: #352a0c;
+  --avatar-dog-fg: #fcd34d;
+  --avatar-bird-bg: #0f1d33;
+  --avatar-bird-fg: #93c5fd;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 256 256'%3E%3Cpath fill='%23a5b4b2' d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E");
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45);
+  --ring: 0 0 0 3px rgba(45, 212, 191, 0.4);
+
+  color-scheme: dark;
 }
 
 /* ---------- Temel ---------- */
@@ -185,14 +265,14 @@ button {
   z-index: 200;
   padding: var(--space-2) var(--space-4);
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   border-radius: var(--radius-sm);
   font-weight: 700;
 }
 
 .skip-link:focus {
   top: var(--space-4);
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 /* ---------- Düzen ---------- */
@@ -320,13 +400,13 @@ button {
 
 .btn-primary {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  color: #fff;
+  color: var(--color-on-primary);
   box-shadow: var(--shadow-md);
 }
 
@@ -351,14 +431,15 @@ button {
   color: var(--color-text);
 }
 
+/* Sabit koyu teal zeminler (çağrı bandı) üzerinde kullanılır; temadan bağımsızdır */
 .btn-light {
   background: #fff;
-  color: var(--color-primary-hover);
+  color: #115e59;
 }
 
 .btn-light:hover:not(:disabled) {
-  background: var(--color-primary-tint);
-  color: var(--color-primary-hover);
+  background: #f0fdfa;
+  color: #115e59;
 }
 
 .btn-danger {
@@ -483,7 +564,7 @@ button {
   width: 100%;
   min-height: 44px;
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-input-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
@@ -514,7 +595,7 @@ textarea.input {
 select.input {
   appearance: none;
   padding-right: var(--space-10);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 256 256'%3E%3Cpath fill='%23475569' d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E");
+  background-image: var(--select-arrow);
   background-repeat: no-repeat;
   background-position: right var(--space-3) center;
   cursor: pointer;
@@ -780,7 +861,12 @@ select.input {
 
 .skeleton {
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, #eef2f1 25%, #f6f8f8 50%, #eef2f1 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton) 25%,
+    var(--color-skeleton-shine) 50%,
+    var(--color-skeleton) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -819,11 +905,12 @@ select.input {
   border: 0;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  background: var(--color-surface);
   color: var(--color-text);
 }
 
 .dialog::backdrop {
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--color-backdrop);
 }
 
 .dialog[open] {
