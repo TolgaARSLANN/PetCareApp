@@ -141,7 +141,8 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 | `PORT` | `5000` | Port the API listens on |
 | `MONGO_URI` | `mongodb://127.0.0.1:27017/pet_care_db` | MongoDB connection string |
 | `JWT_SECRET` | *(required)* | Secret used to sign login tokens |
-| `JWT_EXPIRES_IN` | `1d` | Token lifetime |
+| `JWT_EXPIRES_IN` | `1d` | Idle timeout: a session unused this long expires (active sessions renew themselves) |
+| `SESSION_MAX_DAYS` | `30` | Maximum session length after login; then the user logs in again |
 | `CLIENT_ORIGIN` | `http://localhost:3000` | Frontend origin allowed by CORS |
 | `NODE_ENV` | — | Set to `production` when deployed (session cookie becomes HTTPS-only) |
 | `AUTH_RATE_LIMIT` | `10` | Failed login / register attempts per IP per 15 minutes |
@@ -193,10 +194,11 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 ## 🔒 Security
 
 - **Session cookie:** after login the JWT is stored in an `httpOnly`, `SameSite=Strict` cookie scoped to `/api` (and `Secure` in production). Page scripts cannot read it, so an XSS bug cannot steal the session, and the browser does not send it on cross-site requests (CSRF). The login response only contains the user id.
+- **Sliding session:** once half of the token's lifetime has passed, the next request gets a fresh cookie, so an active user is not logged out mid-task. An idle session still expires after `JWT_EXPIRES_IN`, and no session lasts more than `SESSION_MAX_DAYS` after login.
 - **Session revocation:** every token carries the account's session version, checked on each request. Changing the password or choosing "sign out of all devices" bumps the version, so stolen or forgotten sessions stop working immediately (tokens of deleted accounts are rejected too).
 - **Same-site API:** because of `SameSite=Strict`, the frontend must reach the API on its own address under `/api`. In development the Vite proxy does this; when deploying, add a rewrite on the frontend host (for example a Vercel rewrite of `/api/:path*` to the backend URL) and set `TRUST_PROXY=1` on the backend.
-- **Input validation:** the API enforces the same rules as the forms (required fields, trimmed text with length limits, positive weights up to 500 kg, no future birth dates), also when updating. Invalid data gets a `400 { "error": "Invalid record data" }`, never a `500`. Emails are stored in lower case, so `Ali@Mail.com` and `ali@mail.com` are the same account.
-- **Brute-force protection:** at most 10 failed attempts per IP per 15 minutes across login, register, password change and account deletion (`429` afterwards); successful attempts don't count.
+- **Input validation:** the API enforces the same rules as the forms (required fields, trimmed text with length limits, positive weights up to 500 kg, no future birth dates), also when updating. Invalid data gets a `400 { "error": "Invalid record data" }`, never a `500`. Emails are stored in lower case, so `Ali@Mail.com` and `ali@mail.com` are the same account. Blog cover images must be `https://` URLs. Passwords are limited to 72 bytes, the part bcrypt actually uses (Turkish letters such as ğ count as 2).
+- **Brute-force protection:** at most 10 failed attempts per IP per 15 minutes across login, register, password change and account deletion (`429` afterwards); successful attempts don't count. A failed login takes the same time whether or not the email is registered.
 - **Rate limit:** 1000 API requests per IP per 15 minutes.
 - **Security headers** via [helmet](https://helmetjs.github.io/) (no-sniff, frame denial, HSTS, CSP, no `X-Powered-By`).
 - **Request size:** JSON bodies are limited to 100 KB; malformed JSON returns `400`.

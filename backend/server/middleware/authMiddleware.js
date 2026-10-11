@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const config = require('../config');
 const User = require('../models/User');
-const { AUTH_COOKIE } = require('./authCookie');
+const { AUTH_COOKIE, issueSession } = require('./authCookie');
 
 // The browser app sends the token in an httpOnly cookie; other API clients
 // (and the tests) may still send it as "Authorization: Bearer <token>".
@@ -18,16 +18,34 @@ async function isSessionCurrent(userId, tokenVersion = 0) {
   return Boolean(await User.exists({ _id: userId, tokenVersion: version }));
 }
 
-// Returns the logged-in user's id, or null when there is no valid session
-async function getUserId(req) {
+// Sliding session: once half of the token's lifetime has passed, the next request gets a fresh
+// cookie, so an active user is not logged out mid-task while an idle session still expires.
+// The login time ("at") is carried over and the session stops sliding sessionMaxDays after it.
+// Only for the browser's cookie; API clients sending a Bearer header manage their own tokens.
+function refreshIfAging(req, res, decoded) {
+  if (!req.cookies?.[AUTH_COOKIE] || !decoded.exp || !decoded.iat) return;
+  const now = Math.floor(Date.now() / 1000);
+  const lifetime = decoded.exp - decoded.iat;
+  if (decoded.exp - now > lifetime / 2) return;
+  const authTime = decoded.at ?? decoded.iat; // tokens issued before "at" existed
+  if (now - authTime >= config.sessionMaxDays * 24 * 60 * 60) return;
+  issueSession(res, { userId: decoded.userId, tokenVersion: decoded.tv || 0, authTime });
+}
+
+// Returns the logged-in user's id, or null when there is no valid session.
+// Pass res to also slide the session (see refreshIfAging).
+async function getUserId(req, res) {
   const token = readToken(req);
   if (!token) return null;
+  let decoded;
   try {
-    const { userId, tv } = jwt.verify(token, config.jwtSecret);
-    return (await isSessionCurrent(userId, tv)) ? userId : null;
+    decoded = jwt.verify(token, config.jwtSecret);
   } catch {
     return null;
   }
+  if (!(await isSessionCurrent(decoded.userId, decoded.tv))) return null;
+  if (res) refreshIfAging(req, res, decoded);
+  return decoded.userId;
 }
 
 async function authMiddleware(req, res, next) {
@@ -50,6 +68,7 @@ async function authMiddleware(req, res, next) {
     return res.status(500).json({ message: 'Server error' });
   }
   req.userId = decoded.userId;
+  refreshIfAging(req, res, decoded);
   next();
 }
 

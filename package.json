@@ -4,6 +4,9 @@
   "private": true,
   "description": "Pawfect Care: run the backend and frontend together",
   "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "npm install && npm --prefix backend/server install && npm --prefix frontend install",
     "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm --prefix backend/server run dev\" \"npm --prefix frontend run dev\"",

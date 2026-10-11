@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Alert from "./ui/Alert";
 import Field from "./ui/Field";
 import { Spinner } from "./ui/Loading";
+import { isHttpsUrl } from "../utils/validation";
 
 const EMPTY = { title: "", content: "", author: "", image: "" };
 
@@ -28,6 +29,10 @@ const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, auto
     };
     if (!trimmed.title || !trimmed.content || !trimmed.author) {
       setError("Başlık, içerik ve yazar alanları zorunludur.");
+      return;
+    }
+    if (trimmed.image && !isHttpsUrl(trimmed.image)) {
+      setError("Kapak görseli https:// ile başlayan bir adres olmalı.");
       return;
     }
     setBusy(true);

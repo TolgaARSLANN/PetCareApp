@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
+import { isPasswordTooLong, PASSWORD_TOO_LONG } from "../utils/validation";
 import AuthShell from "./AuthShell";
 import Alert from "./ui/Alert";
 import Field from "./ui/Field";
@@ -13,6 +14,7 @@ const ERROR_TRANSLATIONS = {
   "Email in use": "Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.",
   "A valid email is required": "Geçerli bir e-posta adresi girin.",
   "Password must be at least 6 characters": "Parola en az 6 karakter olmalı.",
+  "Password must be at most 72 bytes": PASSWORD_TOO_LONG,
   "Too many attempts, please try again later":
     "Çok fazla başarısız deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin.",
 };
@@ -27,6 +29,10 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isPasswordTooLong(password)) {
+      setError(PASSWORD_TOO_LONG);
+      return;
+    }
     setBusy(true);
     setError("");
     try {

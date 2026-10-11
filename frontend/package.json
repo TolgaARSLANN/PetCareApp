@@ -13,6 +13,9 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "description": "",
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

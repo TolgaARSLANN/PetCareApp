@@ -8,6 +8,7 @@ import Field from "./ui/Field";
 import PasswordInput from "./ui/PasswordInput";
 import { PageLoader, Spinner } from "./ui/Loading";
 import useDocumentTitle from "../hooks/useDocumentTitle";
+import { isPasswordTooLong, PASSWORD_TOO_LONG } from "../utils/validation";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -16,6 +17,7 @@ const PASSWORD_ERRORS = {
   "Current password is incorrect": "Mevcut parola hatalı.",
   "New password must be different": "Yeni parola mevcut paroladan farklı olmalı.",
   "Password must be at least 6 characters": "Yeni parola en az 6 karakter olmalı.",
+  "Password must be at most 72 bytes": PASSWORD_TOO_LONG,
 };
 
 const errorMessage = (err, translations, fallback) => {
@@ -40,6 +42,11 @@ const ChangePassword = () => {
     e.preventDefault();
     setTouchedRepeat(true);
     if (next !== repeat) return;
+    if (isPasswordTooLong(next)) {
+      setError(PASSWORD_TOO_LONG);
+      setSuccess(false);
+      return;
+    }
     setBusy(true);
     setError("");
     setSuccess(false);
