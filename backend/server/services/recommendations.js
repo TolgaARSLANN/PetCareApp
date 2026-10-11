@@ -49,7 +49,8 @@ const byDateAsc = (records = []) => {
   });
 };
 
-function getRecommendations(pet) {
+// now: testlerde sabit bir "bugün" vermek için
+function getRecommendations(pet, now = new Date()) {
   const recommendations = [];
   const species = normalizeSpecies(pet.species);
 
@@ -106,7 +107,48 @@ function getRecommendations(pet) {
     recommendations.push('Acil Durum İçin Bir Veteriner veya Yakın Kişi Ekleyin');
   }
 
+  // Aşılara göre öneriler
+  recommendations.push(...vaccineRecommendations(pet.vaccines, now));
+
   return recommendations;
+}
+
+const DUE_SOON_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const formatDateTr = (date) =>
+  new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+// Her aşının yalnızca en son yapılan kaydına bakılır: yenilenmiş bir aşının eski kaydındaki
+// geçmiş tekrar tarihi uyarı üretmez. Geciken ve 30 gün içinde gelen tekrarlar bildirilir.
+function vaccineRecommendations(vaccines = [], now = new Date()) {
+  if (vaccines.length === 0) return ['Aşı Takvimini Veterinerinizle Planlayın'];
+
+  const latestByName = new Map();
+  vaccines
+    // Alanlar açıkça kopyalanır: Mongoose alt dokümanları {...v} ile kopyalanamaz
+    .map((v) => ({ vaccineName: v.vaccineName, nextDueDate: v.nextDueDate, date: v.vaccineDate }))
+    .forEach((v) => {
+      const key = normalizeSpecies(v.vaccineName); // aynı normalizasyon: kırp + Türkçe küçük harf
+      const current = latestByName.get(key);
+      if (!current || byDateAsc([current, v])[1] === v) latestByName.set(key, v);
+    });
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const notes = [];
+  latestByName.forEach((v) => {
+    if (!v.nextDueDate) return;
+    const due = new Date(v.nextDueDate);
+    if (Number.isNaN(due.getTime())) return;
+    if (due < today) {
+      notes.push(`${v.vaccineName} aşısının tekrar tarihi geçti (${formatDateTr(due)}): veterinerinizden randevu alın`);
+    } else if (due - today <= DUE_SOON_DAYS * DAY_MS) {
+      notes.push(`${v.vaccineName} aşısının tekrar tarihi yaklaşıyor (${formatDateTr(due)})`);
+    }
+  });
+  return notes;
 }
 
 module.exports = { getRecommendations, normalizeSpecies };

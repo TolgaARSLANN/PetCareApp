@@ -233,6 +233,42 @@ router.get('/:id/appointments', authMiddleware, async (req, res) => {
 });
 
 
+// Aşı ekleme (POST /:id/vaccines)
+router.post('/:id/vaccines', authMiddleware, async (req, res) => {
+  try {
+    const { vaccineName, vaccineDate, nextDueDate, notes } = req.body;
+    const pet = await Pet.findOne({ _id: req.params.id, ownerId: req.userId });
+    if (!pet) {
+      return res.status(404).json({ error: 'Pet not found or unauthorized' });
+    }
+
+    pet.vaccines.push({ vaccineName, vaccineDate, nextDueDate: nextDueDate || undefined, notes });
+    await pet.save();
+    res.status(201).json(pet.vaccines);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: 'Invalid record data' });
+    }
+    console.error('Error adding vaccine:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Aşıları listeleme (GET /:id/vaccines)
+router.get('/:id/vaccines', authMiddleware, async (req, res) => {
+  try {
+    const pet = await Pet.findOne({ _id: req.params.id, ownerId: req.userId });
+    if (!pet) {
+      return res.status(404).json({ error: 'Pet not found or unauthorized' });
+    }
+
+    res.json(pet.vaccines);
+  } catch (error) {
+    console.error('Error fetching vaccines:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Acil durum kontaktı ekleme (POST /:id/emergency-contact)
 router.post('/:id/emergency-contact', authMiddleware, async (req, res) => {
   try {
@@ -272,6 +308,7 @@ router.get('/:id/emergency-contact', authMiddleware, async (req, res) => {
 // Yalnızca aşağıda listelenen alanlar güncellenebilir.
 const RECORD_TYPES = {
   'health-records': { field: 'healthRecords', editable: ['date', 'notes'] },
+  vaccines: { field: 'vaccines', editable: ['vaccineName', 'vaccineDate', 'nextDueDate', 'notes'] },
   weight: { field: 'weightHistory', editable: ['date', 'weight'] },
   medications: {
     field: 'medicationRecords',

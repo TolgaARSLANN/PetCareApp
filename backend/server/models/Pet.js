@@ -13,8 +13,10 @@ const petSchema = new mongoose.Schema({
   birthDate: Date,
   vaccines: [
     {
-      vaccineName: String,
-      vaccineDate: Date,
+      vaccineName: { type: String, required: true, trim: true },
+      vaccineDate: { type: Date, required: true }, // Uygulama tarihi
+      nextDueDate: Date, // Tekrar (rapel) tarihi; öneriler ve "sıradaki aşı" bunu kullanır
+      notes: String,
     },
   ],
   healthRecords: [
