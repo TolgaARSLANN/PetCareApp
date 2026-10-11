@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { List, SignOut, X } from "@phosphor-icons/react";
 import Logo from "./ui/Logo";
+import ThemeToggle from "./ui/ThemeToggle";
 
 const navClass = ({ isActive }) => `nav-link ${isActive ? "is-active" : ""}`;
 
@@ -33,17 +34,6 @@ const Navbar = ({ isLoggedIn, setIsLoggedIn }) => {
         <Link to="/" className="navbar-brand" aria-label="Pawfect Care ana sayfa">
           <Logo />
         </Link>
-
-        <button
-          type="button"
-          className="btn-icon navbar-toggle"
-          aria-expanded={open}
-          aria-controls="main-menu"
-          aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X size={24} aria-hidden="true" /> : <List size={24} aria-hidden="true" />}
-        </button>
 
         <div id="main-menu" className={`navbar-menu ${open ? "is-open" : ""}`}>
           <ul className="nav-links">
@@ -84,6 +74,19 @@ const Navbar = ({ isLoggedIn, setIsLoggedIn }) => {
             )}
           </div>
         </div>
+
+        <ThemeToggle />
+
+        <button
+          type="button"
+          className="btn-icon navbar-toggle"
+          aria-expanded={open}
+          aria-controls="main-menu"
+          aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X size={24} aria-hidden="true" /> : <List size={24} aria-hidden="true" />}
+        </button>
       </nav>
     </header>
   );

@@ -6,6 +6,21 @@
   <meta name="description" content="Pawfect Care: evcil dostlarınızın sağlık kayıtlarını, ilaçlarını, kilosunu ve randevularını tek yerden takip edin.">
   <meta name="theme-color" content="#0f766e">
   <title>Pawfect Care · Evcil dostlarınızın sağlık asistanı</title>
+  <script>
+    // Temayı sayfa çizilmeden önce uygula (açık temanın bir an görünüp kaybolmasını önler).
+    // Kullanıcının kayıtlı seçimi yoksa işletim sistemi tercihi kullanılır. Bkz. src/hooks/useTheme.js
+    (function () {
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) {}
+      var theme = stored === "light" || stored === "dark"
+        ? stored
+        : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = theme;
+      if (theme === "dark") {
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", "#0e1615");
+      }
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

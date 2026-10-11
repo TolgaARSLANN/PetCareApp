@@ -17,7 +17,7 @@
 
 **Pawfect Care** is a full-stack web application that helps pet owners keep their animals' health and care records in one place. Each user manages their own pets: health notes, weight history, medications, vet appointments and emergency contacts. The app also suggests care products based on the pet's species and weight, and includes a community blog.
 
-The UI is in Turkish. It is responsive (mobile to desktop) and built with accessibility in mind: visible labels, keyboard focus styles, an accessible confirm dialog, skip link and reduced-motion support.
+The UI is in Turkish. It has light and dark themes (follows the system setting until you pick one with the sun/moon button), is responsive (mobile to desktop) and is built with accessibility in mind: visible labels, keyboard focus styles, an accessible confirm dialog, skip link and reduced-motion support.
 
 ---
 
