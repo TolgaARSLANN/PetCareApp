@@ -1,18 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Pet = require('../models/Pet');
 const Blog = require('../models/Blog');
-const config = require('../config');
 const authMiddleware = require('../middleware/authMiddleware');
 const { getUserId } = authMiddleware;
 const { authLimiter } = require('../middleware/rateLimits');
-const { AUTH_COOKIE, cookieOptions } = require('../middleware/authCookie');
+const { AUTH_COOKIE, cookieOptions, issueSession } = require('../middleware/authCookie');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
+// bcrypt only uses the first 72 bytes of a password; anything after would be silently ignored.
+// Bytes, not characters: Turkish letters such as ğ or ş take 2 bytes.
+const MAX_PASSWORD_BYTES = 72;
+const TOO_LONG_MESSAGE = `Password must be at most ${MAX_PASSWORD_BYTES} bytes`;
+const isTooLong = (password) => Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_BYTES;
+
+// Compared against when the email is unknown, so a failed login takes the same time whether or not
+// the account exists (otherwise the response time reveals which emails are registered)
+const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing', 10);
 
 // E-postalar küçük harfle saklanır ve aranır: "Ali@Mail.com" ile "ali@mail.com" aynı hesaptır
 const normalizeEmail = (email) => email.trim().toLowerCase();
@@ -26,19 +33,12 @@ function validateCredentials(email, password) {
   if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
     return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
   }
+  if (isTooLong(password)) return TOO_LONG_MESSAGE;
   return null;
 }
 
-// Signs a token and puts it in an httpOnly cookie that expires together with the token.
-// The token is never returned in the body, so page scripts never see it.
-// "tv" is the user's session version; the token stops working once it is bumped.
-function startSession(res, user) {
-  const token = jwt.sign({ userId: user._id, tv: user.tokenVersion || 0 }, config.jwtSecret, {
-    expiresIn: config.jwtExpiresIn,
-  });
-  const { exp } = jwt.decode(token);
-  res.cookie(AUTH_COOKIE, token, { ...cookieOptions, expires: new Date(exp * 1000) });
-}
+// Starts a new session (fresh login time) for the user
+const startSession = (res, user) => issueSession(res, { userId: user._id, tokenVersion: user.tokenVersion || 0 });
 
 // Kullanıcı Kaydı
 router.post('/register', authLimiter, async (req, res) => {
@@ -69,10 +69,9 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     const user = await findByEmail(email);
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
+    // Unknown email: still run a comparison so the response time does not give it away
+    const match = await bcrypt.compare(password, user ? user.password : DUMMY_HASH);
+    if (!user || !match) return res.status(400).json({ message: 'Invalid credentials' });
 
     startSession(res, user);
     res.json({ userId: String(user._id) });
@@ -86,7 +85,7 @@ router.post('/login', authLimiter, async (req, res) => {
 // Ziyaretçi için de 200 döner; "kimse" geçerli bir cevaptır (her sayfa açılışında 401 hatası üretmez).
 router.get('/me', async (req, res) => {
   try {
-    const userId = await getUserId(req);
+    const userId = await getUserId(req, res);
     res.json({ userId: userId ? String(userId) : null });
   } catch (error) {
     console.error('Error checking session:', error);
@@ -141,6 +140,7 @@ router.put('/password', authLimiter, authMiddleware, async (req, res) => {
     if (newPassword.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
+    if (isTooLong(newPassword)) return res.status(400).json({ message: TOO_LONG_MESSAGE });
     if (newPassword === currentPassword) {
       return res.status(400).json({ message: 'New password must be different' });
     }
