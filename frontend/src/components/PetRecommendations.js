@@ -15,7 +15,7 @@ const PetRecommendations = ({ petId }) => {
         const { data } = await API.get(`/pets/${petId}/recommendations`);
         setRecommendations(data);
       } catch (err) {
-        setError("Failed to fetch recommendations. Please try again later.");
+        setError("Öneriler yüklenemedi. Lütfen daha sonra tekrar deneyin.");
         console.error("Error fetching recommendations:", err);
       } finally {
         setLoading(false);
@@ -28,7 +28,7 @@ const PetRecommendations = ({ petId }) => {
   if (loading) {
     return (
       <div className="loading-message">
-        <p>Loading recommendations...</p>
+        <p>Öneriler yükleniyor...</p>
       </div>
     );
   }
@@ -53,7 +53,7 @@ const PetRecommendations = ({ petId }) => {
           ))}
         </ul>
       ) : (
-        <p className="no-recommendations">No recommendations available.</p>
+        <p className="no-recommendations">Şu an öneri yok.</p>
       )}
     </div>
   );

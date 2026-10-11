@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import PetList from "./components/PetList";
@@ -12,13 +12,8 @@ import Register from "./components/Register";
 import "./styles/Homepage.css";
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Kullanıcı oturumunu kontrol et
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token); // Eğer token varsa giriş yapılmış demektir
-  }, []);
+  // Oturum durumu ilk render'da okunur; böylece sayfa yenilenince login'e kısa yönlendirme olmaz
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
 
   return (
     <Router>

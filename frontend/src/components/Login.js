@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import API from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Login = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,16 +16,18 @@ const Login = ({ setIsLoggedIn }) => {
       localStorage.setItem("token", response.data.token); // Token'ı localStorage'a kaydet
       setIsLoggedIn(true); // Oturum durumunu güncelle
       setError(""); // Hataları sıfırla
-      alert("Login successful!");
       navigate("/pets"); // My Pets sayfasına yönlendir
     } catch (err) {
-      setError("Invalid email or password");
+      setError("E-posta veya parola hatalı.");
     }
   };
 
   return (
     <div className="container">
       <h2>Giriş</h2>
+      {location.state?.registered && !error && (
+        <div className="alert alert-success">Kayıt başarılı. Şimdi giriş yapabilirsiniz.</div>
+      )}
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="mb-3">

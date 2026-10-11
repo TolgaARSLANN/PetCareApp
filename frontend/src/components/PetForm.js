@@ -2,17 +2,21 @@ import React, { useState, useEffect } from "react";
 import API from "../services/api";
 import "./PetForm.css";
 
+// Öneri sistemi bu değerlerle çalışır (backend/server/routes/pets.js)
+const SPECIES_OPTIONS = ["kedi", "köpek", "kuş", "diğer"];
+
 
 const PetForm = ({ selectedPet, setSelectedPet, setPets, pets }) => {
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [error, setError] = useState("");
 
   // Formu doldur
   useEffect(() => {
     if (selectedPet) {
       setName(selectedPet.name);
-      setSpecies(selectedPet.species);
+      setSpecies((selectedPet.species || "").toLocaleLowerCase("tr-TR"));
       setBirthDate(selectedPet.birthDate?.split("T")[0] || "");
     } else {
       setName("");
@@ -24,6 +28,7 @@ const PetForm = ({ selectedPet, setSelectedPet, setPets, pets }) => {
   // Form gönderimi
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     try {
       if (selectedPet) {
         // Güncelleme
@@ -37,7 +42,6 @@ const PetForm = ({ selectedPet, setSelectedPet, setPets, pets }) => {
             pet._id === selectedPet._id ? data : pet
           )
         );
-        alert("Pet updated successfully!");
       } else {
         // Yeni pet ekleme
         const { data } = await API.post("/pets", {
@@ -46,20 +50,21 @@ const PetForm = ({ selectedPet, setSelectedPet, setPets, pets }) => {
           birthDate,
         });
         setPets([...pets, data]);
-        alert("Pet added successfully!");
       }
       setSelectedPet(null);
       setName("");
       setSpecies("");
       setBirthDate("");
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
+      setError("Kaydedilemedi. Lütfen tekrar deneyin.");
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
       <h3>{selectedPet ? "Evcil Dost Düzenle" : "Evcil Dost Ekle"}</h3>
+      {error && <div className="alert alert-danger">{error}</div>}
       <div className="mb-3">
         <label htmlFor="name" className="form-label">
           Adı
@@ -77,14 +82,23 @@ const PetForm = ({ selectedPet, setSelectedPet, setPets, pets }) => {
         <label htmlFor="species" className="form-label">
           Tür
         </label>
-        <input
-          type="text"
-          className="form-control"
+        <select
+          className="form-select"
           id="species"
           value={species}
           onChange={(e) => setSpecies(e.target.value)}
           required
-        />
+        >
+          <option value="" disabled>
+            Tür seçin
+          </option>
+          {/* Eski kayıtlarda listede olmayan bir tür varsa onu da göster */}
+          {[...SPECIES_OPTIONS, ...(species && !SPECIES_OPTIONS.includes(species) ? [species] : [])].map((option) => (
+            <option key={option} value={option}>
+              {option.charAt(0).toLocaleUpperCase("tr-TR") + option.slice(1)}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="mb-3">
         <label htmlFor="birthDate" className="form-label">
