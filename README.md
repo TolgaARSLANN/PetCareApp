@@ -4,6 +4,7 @@
 
 ### Smart Pet Care Assistant for Devoted Pet Owners
 
+[![CI](https://github.com/TolgaARSLANN/PetCareApp/actions/workflows/ci.yml/badge.svg)](https://github.com/TolgaARSLANN/PetCareApp/actions/workflows/ci.yml)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
@@ -41,7 +42,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 - **Frontend:** React 18, Vite, React Router, Axios, Phosphor Icons, hand-written CSS design system (no UI framework)
 - **Backend:** Node.js, Express 4, Mongoose, JSON Web Tokens, bcrypt, dotenv
-- **Testing:** Jest, Supertest
+- **Testing:** Jest + Supertest (backend), Vitest + Testing Library (frontend), GitHub Actions CI
 - **Database:** MongoDB
 
 ---
@@ -88,7 +89,7 @@ PetCareApp/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 20.19+ or 22.12+ (required by Vite)
+- [Node.js](https://nodejs.org/) 22.12+ (Node 20 is end-of-life)
 - [MongoDB](https://www.mongodb.com/) running locally, or a MongoDB Atlas connection string
 
 ### 1. Clone the repository
@@ -115,7 +116,7 @@ The app opens at `http://localhost:3000` and the API runs at `http://localhost:5
 | `npm run setup` | Installs dependencies in the root, `backend/server` and `frontend` |
 | `npm run dev` | Backend (restarts on file changes) + frontend dev server |
 | `npm start` | Backend without file watching + frontend dev server |
-| `npm test` | Backend tests |
+| `npm test` | Backend and frontend tests |
 | `npm run build` | Frontend production build |
 
 The sections below describe running each part on its own.
@@ -170,12 +171,19 @@ To point the frontend at a different API (for example after deploying the backen
 
 ### 4. Run the tests
 
+From the repository root, `npm test` runs both suites. To run one of them:
+
 ```bash
 cd backend/server
-npm test
+npm test        # Jest + Supertest API tests
 ```
 
-The tests mock the database layer, so they run without MongoDB or a `.env` file.
+```bash
+cd frontend
+npm test        # Vitest + Testing Library component tests (npm run test:watch to re-run on save)
+```
+
+The backend tests mock the database layer, so they run without MongoDB or a `.env` file. Both suites, plus the frontend build, run on every pull request via GitHub Actions (`.github/workflows/ci.yml`).
 
 ---
 

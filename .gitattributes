@@ -1,0 +1,13 @@
+# Depoda ve çalışma klasöründe tüm metin dosyaları LF satır sonuyla tutulur.
+# Windows'taki core.autocrlf ayarından bağımsız, tutarlı satır sonları sağlar.
+* text=auto eol=lf
+
+# İkili dosyalar
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
