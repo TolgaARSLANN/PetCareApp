@@ -2,70 +2,93 @@
 
 const mongoose = require('mongoose');
 
+// Metin sınırları: formlardaki maxLength değerleriyle aynı (frontend/src/components)
+const SHORT_TEXT = 100;
+const LONG_TEXT = 2000;
+const MAX_WEIGHT_KG = 500;
+
+// Metin alanı: baştaki/sondaki boşluklar kırpılır, böylece yalnızca boşluktan oluşan değer
+// "boş" sayılır ve zorunlu alan kuralına takılır
+const text = (maxlength, required = false) => ({ type: String, trim: true, maxlength, required });
+
+// Doğum tarihi gelecekte olamaz (saat dilimi farkları için bir gün pay bırakılır)
+const notInFuture = {
+  validator: (value) => !value || value.getTime() <= Date.now() + 24 * 60 * 60 * 1000,
+  message: 'Date cannot be in the future',
+};
+
 const petSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  name: text(60, true),
   // Öneri sistemi için küçük harfe çevrilir ("Kedi" -> "kedi")
   species: {
     type: String,
     default: 'kedi',
+    maxlength: 40,
     set: (v) => (typeof v === 'string' ? v.trim().toLocaleLowerCase('tr-TR') : v),
   },
-  birthDate: Date,
+  birthDate: { type: Date, validate: notInFuture },
   vaccines: [
     {
-      vaccineName: { type: String, required: true, trim: true },
+      vaccineName: text(SHORT_TEXT, true),
       vaccineDate: { type: Date, required: true }, // Uygulama tarihi
       nextDueDate: Date, // Tekrar (rapel) tarihi; öneriler ve "sıradaki aşı" bunu kullanır
-      notes: String,
+      notes: text(LONG_TEXT),
     },
   ],
   healthRecords: [
     {
       date: { type: Date, required: true },
-      notes: { type: String, required: true },
+      notes: text(LONG_TEXT, true),
     },
   ],
-  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+
   // 1. Ağırlık Takibi
   weightHistory: [
     {
       date: { type: Date, default: Date.now },
-      weight: Number, // Kilogram (kg) cinsinden
+      // Kilogram (kg) cinsinden; sıfır ve negatif değerler anlamsız
+      weight: {
+        type: Number,
+        required: true,
+        max: MAX_WEIGHT_KG,
+        validate: { validator: (v) => v > 0, message: 'Weight must be greater than 0' },
+      },
     },
   ],
 
   // 2. İlaç Kayıtları
   medicationRecords: [
     {
-      name: String,        // İlacın adı
-      dosage: String,      // Kullanım dozu
-      frequency: String,   // Kullanım sıklığı (günde 2 kez gibi)
+      name: text(SHORT_TEXT, true), // İlacın adı
+      dosage: text(SHORT_TEXT, true), // Kullanım dozu
+      frequency: text(SHORT_TEXT), // Kullanım sıklığı (günde 2 kez gibi)
       startDate: Date,
       endDate: Date,
-      notes: String,
+      notes: text(LONG_TEXT),
     },
   ],
 
   // 3. Randevu Yönetimi
   appointments: [
     {
-      date: Date,
-      time: String,   // veya date içerisine saat bilgisi de gömülebilir
-      reason: String, // Randevu nedeni (kontrol, aşı, vb.)
-      location: String,
+      date: { type: Date, required: true },
+      time: text(5), // "SS:DD"
+      reason: text(SHORT_TEXT), // Randevu nedeni (kontrol, aşı, vb.)
+      location: text(SHORT_TEXT),
     },
   ],
 
   // 6. Acil Durum Kontakları
   emergencyContacts: [
     {
-      name: String,
-      relationship: String, // Örneğin: Veteriner, Arkadaş, Aile...
-      phone: String,
-      address: String,
+      name: text(SHORT_TEXT, true),
+      relationship: text(SHORT_TEXT), // Örneğin: Veteriner, Arkadaş, Aile...
+      phone: text(30, true),
+      address: text(LONG_TEXT),
     },
   ],
 });
 
 module.exports = mongoose.model('Pet', petSchema);
+module.exports.LIMITS = { SHORT_TEXT, LONG_TEXT, MAX_WEIGHT_KG };

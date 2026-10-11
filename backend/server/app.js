@@ -35,6 +35,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
 app.use('/api/blogs', blogRoutes);
 
+// Unknown API routes answer in JSON like the rest of the API (not Express's HTML page)
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
 // Fallback error handler for anything a route did not catch
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

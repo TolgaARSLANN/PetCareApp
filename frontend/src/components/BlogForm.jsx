@@ -48,14 +48,28 @@ const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, auto
         <input ref={titleRef} type="text" className="input" value={values.title} onChange={set("title")} maxLength={120} />
       </Field>
       <Field id="blog-content" label="İçerik" hint="Paragrafları boş satırla ayırabilirsiniz." required>
-        <textarea className="input" rows={8} value={values.content} onChange={set("content")} />
+        <textarea className="input" rows={8} value={values.content} onChange={set("content")} maxLength={20000} />
       </Field>
       <div className="form-grid form-grid-2">
         <Field id="blog-author" label="Yazar adı" hint="Yazının altında görünecek isim." required>
-          <input type="text" className="input" value={values.author} onChange={set("author")} autoComplete="name" />
+          <input
+            type="text"
+            className="input"
+            value={values.author}
+            onChange={set("author")}
+            autoComplete="name"
+            maxLength={60}
+          />
         </Field>
         <Field id="blog-image" label="Kapak görseli bağlantısı" hint="https:// ile başlayan bir görsel adresi." optional>
-          <input type="url" className="input" value={values.image} onChange={set("image")} placeholder="https://" />
+          <input
+            type="url"
+            className="input"
+            value={values.image}
+            onChange={set("image")}
+            placeholder="https://"
+            maxLength={500}
+          />
         </Field>
       </div>
       <div className="form-actions">

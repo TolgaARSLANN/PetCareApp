@@ -7,6 +7,16 @@ const Pet = require('../models/Pet');
 const authMiddleware = require('../middleware/authMiddleware');
 const { getRecommendations } = require('../services/recommendations');
 
+// Hatalı veri (eksik zorunlu alan, sayı olmayan kilo, geçersiz tarih...) istemci hatasıdır: 400.
+// Yalnızca beklenmeyen hatalar 500 döner ve kaydedilir.
+const sendError = (res, error, logMessage) => {
+  if (error.name === 'ValidationError' || error.name === 'CastError') {
+    return res.status(400).json({ error: 'Invalid record data' });
+  }
+  console.error(logMessage, error);
+  return res.status(500).json({ error: 'Server error' });
+};
+
 // Geçersiz bir ID gelirse Mongoose CastError (500) yerine 404 dön
 router.param('id', (req, res, next, id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -29,8 +39,7 @@ router.post('/', authMiddleware, async (req, res) => {
     await pet.save();
     res.status(201).json(pet);
   } catch (error) {
-    console.error('Error adding new pet:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error adding new pet:');
   }
 });
 
@@ -40,8 +49,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const pets = await Pet.find({ ownerId: req.userId }); // Sadece kendi pet'leri
     res.json(pets);
   } catch (error) {
-    console.error('Error fetching pets:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching pets:');
   }
 });
 
@@ -52,8 +60,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     if (!pet) return res.status(404).json({ error: 'Pet not found or unauthorized' });
     res.json(pet);
   } catch (error) {
-    console.error('Error fetching pet:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching pet:');
   }
 });
 
@@ -65,15 +72,16 @@ router.put('/:id', authMiddleware, async (req, res) => {
     // Yalnızca giriş yapan kullanıcının pet'i güncellenebilir
     const updatedPet = await Pet.findOneAndUpdate(
       { _id: req.params.id, ownerId: req.userId }, // Sahiplik kontrolü
-      { name, species, birthDate, vaccines }, // 
-      { new: true } // Güncellenmiş dokümanı döndür
+      { name, species, birthDate, vaccines },
+      // Güncellenmiş dokümanı döndür; model kuralları (ör. boş ad) güncellemede de uygulanır,
+      // yoksa geçersiz bir ad kaydı bozar ve sonraki her kayıt eklemesi başarısız olur
+      { new: true, runValidators: true }
     );
 
     if (!updatedPet) return res.status(404).json({ error: 'Pet not found or unauthorized' });
     res.json(updatedPet);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error updating pet:');
   }
 });
 
@@ -92,8 +100,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     res.json({ message: 'Pet deleted successfully' });
   } catch (error) {
-    console.error('Error deleting pet:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error deleting pet:');
   }
 });
 
@@ -113,8 +120,7 @@ router.post('/:id/health-records', authMiddleware, async (req, res) => {
 
     res.status(201).json(pet);
   } catch (error) {
-    console.error('Error adding health record:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error adding health record:');
   }
 });
 
@@ -128,8 +134,7 @@ router.get('/:id/health-records', authMiddleware, async (req, res) => {
 
     res.json(pet.healthRecords);
   } catch (error) {
-    console.error('Error fetching health records:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching health records:');
   }
 });
 
@@ -146,8 +151,7 @@ router.post('/:id/weight', authMiddleware, async (req, res) => {
     await pet.save();
     res.status(201).json(pet.weightHistory);
   } catch (error) {
-    console.error('Error adding weight record:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error adding weight record:');
   }
 });
 
@@ -161,8 +165,7 @@ router.get('/:id/weight', authMiddleware, async (req, res) => {
 
     res.json(pet.weightHistory);
   } catch (error) {
-    console.error('Error fetching weight history:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching weight history:');
   }
 });
 
@@ -179,8 +182,7 @@ router.post('/:id/medications', authMiddleware, async (req, res) => {
     await pet.save();
     res.status(201).json(pet.medicationRecords);
   } catch (error) {
-    console.error('Error adding medication record:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error adding medication record:');
   }
 });
 
@@ -194,8 +196,7 @@ router.get('/:id/medications', authMiddleware, async (req, res) => {
 
     res.json(pet.medicationRecords);
   } catch (error) {
-    console.error('Error fetching medication records:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching medication records:');
   }
 });
 
@@ -212,8 +213,7 @@ router.post('/:id/appointments', authMiddleware, async (req, res) => {
     await pet.save();
     res.status(201).json(pet.appointments);
   } catch (error) {
-    console.error('Error adding appointment:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error adding appointment:');
   }
 });
 
@@ -227,8 +227,7 @@ router.get('/:id/appointments', authMiddleware, async (req, res) => {
 
     res.json(pet.appointments);
   } catch (error) {
-    console.error('Error fetching appointments:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching appointments:');
   }
 });
 
@@ -246,11 +245,7 @@ router.post('/:id/vaccines', authMiddleware, async (req, res) => {
     await pet.save();
     res.status(201).json(pet.vaccines);
   } catch (error) {
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ error: 'Invalid record data' });
-    }
-    console.error('Error adding vaccine:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error adding vaccine:');
   }
 });
 
@@ -264,8 +259,7 @@ router.get('/:id/vaccines', authMiddleware, async (req, res) => {
 
     res.json(pet.vaccines);
   } catch (error) {
-    console.error('Error fetching vaccines:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching vaccines:');
   }
 });
 
@@ -282,8 +276,7 @@ router.post('/:id/emergency-contact', authMiddleware, async (req, res) => {
     await pet.save();
     res.status(201).json(pet.emergencyContacts);
   } catch (error) {
-    console.error('Error adding emergency contact:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error adding emergency contact:');
   }
 });
 
@@ -297,8 +290,7 @@ router.get('/:id/emergency-contact', authMiddleware, async (req, res) => {
 
     res.json(pet.emergencyContacts);
   } catch (error) {
-    console.error('Error fetching emergency contacts:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching emergency contacts:');
   }
 });
 
@@ -351,11 +343,7 @@ Object.entries(RECORD_TYPES).forEach(([path, type]) => {
       await pet.save();
       res.json(pet[type.field]);
     } catch (error) {
-      if (error.name === 'ValidationError' || error.name === 'CastError') {
-        return res.status(400).json({ error: 'Invalid record data' });
-      }
-      console.error(`Error updating ${path} record:`, error);
-      res.status(500).json({ error: 'Server error' });
+      sendError(res, error, `Error updating ${path} record:`);
     }
   });
 
@@ -368,8 +356,7 @@ Object.entries(RECORD_TYPES).forEach(([path, type]) => {
       await pet.save();
       res.json(pet[type.field]);
     } catch (error) {
-      console.error(`Error deleting ${path} record:`, error);
-      res.status(500).json({ error: 'Server error' });
+      sendError(res, error, `Error deleting ${path} record:`);
     }
   });
 });
@@ -384,8 +371,7 @@ router.get('/:id/recommendations', authMiddleware, async (req, res) => {
 
     res.json(getRecommendations(pet));
   } catch (error) {
-    console.error('Error fetching recommendations:', error);
-    res.status(500).json({ error: 'Server error' });
+    sendError(res, error, 'Error fetching recommendations:');
   }
 });
 
