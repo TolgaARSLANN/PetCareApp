@@ -118,7 +118,8 @@ router.post('/:id/health-records', authMiddleware, async (req, res) => {
     pet.healthRecords.push({ date, notes });
     await pet.save();
 
-    res.status(201).json(pet);
+    // Diğer kayıt türleri gibi güncel listeyi döndürür
+    res.status(201).json(pet.healthRecords);
   } catch (error) {
     sendError(res, error, 'Error adding health record:');
   }

@@ -62,12 +62,12 @@ const PetDetails = () => {
 
   const today = todayInputValue();
 
-  // Bir kayıt türü için ekle / güncelle / sil çağrıları. Sunucu güncel listeyi döndürür
-  // (sağlık kaydı eklemede tüm pet döner); her durumda pet state'i güncellenir.
+  // Bir kayıt türü için ekle / güncelle / sil çağrıları. Sunucu her durumda o türün güncel
+  // listesini döndürür; pet state'inde yalnızca o alan güncellenir.
   const recordApi = (path, field) => ({
     add: async (values) => {
       const { data } = await API.post(`/pets/${id}/${path}`, values);
-      setPet((p) => (Array.isArray(data) ? { ...p, [field]: data } : data));
+      setPet((p) => ({ ...p, [field]: data }));
     },
     update: async (recordId, values) => {
       const { data } = await API.put(`/pets/${id}/${path}/${recordId}`, values);

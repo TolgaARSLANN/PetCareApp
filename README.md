@@ -235,7 +235,7 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 | `GET` | `/api/pets/:id` | Get one pet |
 | `PUT` | `/api/pets/:id` | Update a pet |
 | `DELETE` | `/api/pets/:id` | Delete a pet |
-| `GET` / `POST` | `/api/pets/:id/health-records` | List / add health records |
+| `GET` / `POST` | `/api/pets/:id/health-records` | List / add health records (adding returns the updated list, like the other record types) |
 | `GET` / `POST` | `/api/pets/:id/vaccines` | List / add vaccines (`vaccineName`, `vaccineDate`, optional `nextDueDate`, `notes`) |
 | `GET` / `POST` | `/api/pets/:id/weight` | List / add weight measurements |
 | `GET` / `POST` | `/api/pets/:id/medications` | List / add medications |
