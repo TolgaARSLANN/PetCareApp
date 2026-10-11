@@ -24,6 +24,7 @@ import {
   calendarDay,
   capitalizeTr,
   formatDate,
+  formatKg,
   localDay,
   petAge,
   sortByDateDesc,
@@ -139,7 +140,7 @@ const PetDetails = () => {
         <dl className="stat-grid">
           <div className="stat">
             <dt>Son kilo</dt>
-            <dd>{summary.latestWeight ? `${summary.latestWeight.weight} kg` : "-"}</dd>
+            <dd>{summary.latestWeight ? formatKg(summary.latestWeight.weight) : "-"}</dd>
           </div>
           <div className="stat">
             <dt>Yaklaşan randevu</dt>
@@ -276,7 +277,7 @@ const PetDetails = () => {
           emptyText="Henüz kilo kaydı yok."
           addLabel="Kiloyu ekle"
           records={sortByDateDesc(pet.weightHistory)}
-          itemLabel={(w) => `${formatDate(w.date)} tarihli ${w.weight} kg`}
+          itemLabel={(w) => `${formatDate(w.date)} tarihli ${formatKg(w.weight)}`}
           initialValues={{ date: today, weight: "" }}
           toFormValues={(w) => ({ date: toDateInput(w.date), weight: w.weight ?? "" })}
           api={recordApi("weight", "weightHistory")}
@@ -309,11 +310,11 @@ const PetDetails = () => {
                   {formatDate(w.date)}
                 </time>
                 <span className="record-value">
-                  {w.weight} kg
+                  {formatKg(w.weight)}
                   {diff !== null && diff !== 0 && (
                     <span className={`delta ${diff > 0 ? "delta-up" : "delta-down"}`}>
                       {diff > 0 ? "+" : "−"}
-                      {Math.abs(diff)} kg
+                      {formatKg(Math.abs(diff))}
                     </span>
                   )}
                 </span>

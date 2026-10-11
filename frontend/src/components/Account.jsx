@@ -268,7 +268,7 @@ const DeleteAccount = ({ petCount, blogCount }) => {
   };
 
   const summary = [
-    `${petCount} evcil dostunuz (tüm sağlık, aşı, ilaç ve randevu kayıtlarıyla)`,
+    `${petCount} evcil dostunuz (tüm sağlık, aşı, kilo, ilaç, randevu ve acil durum kayıtlarıyla)`,
     `${blogCount} blog yazınız`,
   ];
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatKg, linearScale, niceTicks, timeTickFormatter, timeTicks } from "./chart";
+import { linearScale, niceTicks, timeTickFormatter, timeTicks } from "./chart";
 
 describe("niceTicks", () => {
   test("covers the range with round steps", () => {
@@ -46,7 +46,4 @@ describe("scales and ticks", () => {
     expect(long(Date.parse("2026-06-01"))).toMatch(/Haz.*2026/);
   });
 
-  test("formatKg uses Turkish decimals", () => {
-    expect(formatKg(4.25)).toBe("4,25 kg");
-  });
 });

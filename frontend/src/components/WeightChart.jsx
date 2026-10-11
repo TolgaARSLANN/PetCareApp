@@ -1,6 +1,6 @@
 import React, { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { formatKg, linearScale, niceTicks, timeTickFormatter, timeTicks } from "../utils/chart";
-import { calendarDay, formatDate } from "../utils/format";
+import { linearScale, niceTicks, timeTickFormatter, timeTicks } from "../utils/chart";
+import { calendarDay, formatDate, formatKg } from "../utils/format";
 
 const HEIGHT = 220;
 const MARGIN = { top: 16, right: 64, bottom: 30, left: 48 };

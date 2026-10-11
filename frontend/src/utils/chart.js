@@ -42,6 +42,3 @@ export const timeTickFormatter = (times) => {
   const fmt = new Intl.DateTimeFormat("tr-TR", longRange ? { month: "short", year: "numeric" } : { day: "numeric", month: "short" });
   return (t) => fmt.format(new Date(t));
 };
-
-export const formatKg = (value) =>
-  `${new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(value)} kg`;
