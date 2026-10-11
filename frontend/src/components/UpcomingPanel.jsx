@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarCheck, CaretDown, CaretUp, MapPin, Syringe } from "@phosphor-icons/react";
+import { calendarDay } from "../utils/format";
 import { buildUpcoming, relativeDay } from "../utils/upcoming";
 
 const VISIBLE = 5;
@@ -41,7 +42,7 @@ const UpcomingPanel = ({ pets }) => {
         <>
           <ul className="upcoming-list" id="upcoming-list">
             {visible.map((item) => {
-              const date = new Date(item.date);
+              const date = calendarDay(item.date);
               const Icon = item.type === "vaccine" ? Syringe : CalendarCheck;
               return (
                 <li key={item.key}>

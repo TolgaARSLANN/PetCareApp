@@ -15,8 +15,8 @@ describe("relativeDay", () => {
     expect(relativeDay("2026-09-01", NOW)).toBe("40 gün önce");
   });
 
-  test("ignores the time of day", () => {
-    expect(daysFromToday("2026-10-12T01:00:00", NOW)).toBe(1);
+  test("reads the stored calendar day (sent by the server as UTC midnight)", () => {
+    expect(daysFromToday("2026-10-12T00:00:00.000Z", NOW)).toBe(1);
   });
 });
 

@@ -20,19 +20,22 @@ import Field from "./ui/Field";
 import { PageLoader } from "./ui/Loading";
 import SpeciesIcon from "./ui/SpeciesIcon";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { capitalizeTr, formatDate, petAge, sortByDateDesc, toDateInput, todayInputValue } from "../utils/format";
+import {
+  calendarDay,
+  capitalizeTr,
+  formatDate,
+  localDay,
+  petAge,
+  sortByDateDesc,
+  toDateInput,
+  todayInputValue,
+} from "../utils/format";
 import { nextVaccineDue, VACCINE_STATUS_BADGES, vaccineStatus } from "../utils/vaccines";
 
 // Metin sınırları: backend/server/models/Pet.js ile aynı
 const SHORT_TEXT = 100;
 const LONG_TEXT = 2000;
 const MAX_WEIGHT_KG = 500;
-
-const startOfToday = () => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
 
 const PetDetails = () => {
   const { id } = useParams();
@@ -84,10 +87,10 @@ const PetDetails = () => {
     if (!pet) return {};
     const latestWeight = sortByDateDesc(pet.weightHistory || [])[0];
     const upcoming = [...(pet.appointments || [])]
-      .filter((a) => a.date && new Date(a.date) >= startOfToday())
+      .filter((a) => a.date && calendarDay(a.date) >= localDay())
       .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
     const activeMeds = (pet.medicationRecords || []).filter(
-      (m) => !m.endDate || new Date(m.endDate) >= startOfToday()
+      (m) => !m.endDate || calendarDay(m.endDate) >= localDay()
     ).length;
     const nextVaccine = nextVaccineDue(pet.vaccines);
     return { latestWeight, upcoming, activeMeds, nextVaccine };
@@ -370,7 +373,7 @@ const PetDetails = () => {
             </>
           )}
           renderRecord={(med) => {
-            const active = !med.endDate || new Date(med.endDate) >= startOfToday();
+            const active = !med.endDate || calendarDay(med.endDate) >= localDay();
             return (
               <>
                 <div className="record-title-row">
@@ -425,7 +428,7 @@ const PetDetails = () => {
             </div>
           )}
           renderRecord={(app) => {
-            const upcoming = app.date && new Date(app.date) >= startOfToday();
+            const upcoming = app.date && calendarDay(app.date) >= localDay();
             return (
               <>
                 <div className="record-title-row">

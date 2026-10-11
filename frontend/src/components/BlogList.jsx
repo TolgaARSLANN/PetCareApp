@@ -10,7 +10,7 @@ import EmptyState from "./ui/EmptyState";
 import { SkeletonCards } from "./ui/Loading";
 import Pagination from "./ui/Pagination";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { formatDate } from "../utils/format";
+import { formatTimestamp } from "../utils/format";
 import { parsePage } from "../utils/pagination";
 
 export const BlogCover = ({ src, className = "" }) => {
@@ -184,7 +184,7 @@ const BlogList = () => {
                 <BlogCover src={blog.image} />
                 <div className="blog-card-body">
                   <p className="blog-meta">
-                    {blog.author} · <time dateTime={blog.date}>{formatDate(blog.date || blog.createdAt)}</time>
+                    {blog.author} · <time dateTime={blog.date}>{formatTimestamp(blog.date || blog.createdAt)}</time>
                   </p>
                   <h2 className="blog-card-title">
                     <Link to={`/blogs/${blog._id}`} className="stretched-link">

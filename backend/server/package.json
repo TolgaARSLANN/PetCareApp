@@ -43,6 +43,7 @@
     ],
     "testMatch": [
       "<rootDir>/tests/**/*.test.js"
-    ]
+    ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js"
   }
 }

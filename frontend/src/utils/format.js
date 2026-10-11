@@ -6,7 +6,31 @@ const dateFormatter = new Intl.DateTimeFormat("tr-TR", {
   year: "numeric",
 });
 
+// Takvim günleri (doğum, kayıt, aşı, randevu tarihleri) formdan "2026-03-10" olarak gelir ve sunucuda
+// o günün UTC gece yarısı olarak saklanır. Yerel saate çevrilirse UTC'nin gerisindeki ülkelerde bir
+// önceki güne kayar; bu yüzden UTC yıl/ay/gün okunup yerel gece yarısı olarak kurulur.
+export const calendarDay = (value) => {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+};
+
+// Bir anın (ör. "şimdi") yerel gününün başlangıcı
+export const localDay = (moment = new Date()) => {
+  const d = new Date(moment);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Takvim günü: "10 Mart 2026" (her saat diliminde aynı gün)
 export const formatDate = (value) => {
+  const day = calendarDay(value);
+  return day ? dateFormatter.format(day) : "-";
+};
+
+// Gerçek bir an (ör. blog yazısının yayınlandığı zaman): okuyucunun yerel günüyle gösterilir
+export const formatTimestamp = (value) => {
   if (!value) return "-";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
@@ -17,9 +41,8 @@ export const capitalizeTr = (text = "") =>
 
 // "2 yaşında", "5 aylık" gibi okunabilir yaş metni
 export const petAge = (birthDate) => {
-  if (!birthDate) return null;
-  const birth = new Date(birthDate);
-  if (Number.isNaN(birth.getTime())) return null;
+  const birth = calendarDay(birthDate);
+  if (!birth) return null;
   const now = new Date();
   let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
   if (now.getDate() < birth.getDate()) months -= 1;
