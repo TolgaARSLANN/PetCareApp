@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { capitalizeTr, formatDate, petAge, sortByDateDesc, toDateInput } from "./format";
+import { capitalizeTr, formatDate, formatKg, petAge, sortByDateDesc, toDateInput } from "./format";
 
 describe("petAge", () => {
   beforeEach(() => {
@@ -62,5 +62,14 @@ describe("formatting helpers", () => {
   test("capitalizeTr uses Turkish casing", () => {
     expect(capitalizeTr("istanbul")).toBe("İstanbul");
     expect(capitalizeTr("")).toBe("");
+  });
+});
+
+describe("formatKg", () => {
+  test("uses the Turkish decimal comma and at most two decimals", () => {
+    expect(formatKg(4.5)).toBe("4,5 kg");
+    expect(formatKg(4.25)).toBe("4,25 kg");
+    expect(formatKg(12)).toBe("12 kg");
+    expect(formatKg(4.3 - 4.1)).toBe("0,2 kg"); // kayan nokta hatası (0.19999…) görünmez
   });
 });

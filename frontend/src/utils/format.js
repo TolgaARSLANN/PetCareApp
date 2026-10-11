@@ -29,6 +29,10 @@ export const formatDate = (value) => {
   return day ? dateFormatter.format(day) : "-";
 };
 
+// Kilo: Türkçe ondalık virgülüyle, en fazla 2 basamak ("4,25 kg"). Kilo gösterilen her yerde kullanılır.
+const kgFormatter = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 });
+export const formatKg = (value) => `${kgFormatter.format(value)} kg`;
+
 // Gerçek bir an (ör. blog yazısının yayınlandığı zaman): okuyucunun yerel günüyle gösterilir
 export const formatTimestamp = (value) => {
   if (!value) return "-";

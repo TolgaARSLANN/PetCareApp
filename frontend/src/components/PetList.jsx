@@ -219,7 +219,7 @@ const PetList = () => {
       <ConfirmDialog
         open={Boolean(toDelete)}
         title={`${toDelete?.name || ""} silinsin mi?`}
-        message="Bu evcil dosta ait tüm sağlık, ilaç ve randevu kayıtları da silinir. Bu işlem geri alınamaz."
+        message="Bu evcil dosta ait tüm kayıtlar (sağlık, aşı, kilo, ilaç, randevu ve acil durum kişileri) da silinir. Bu işlem geri alınamaz."
         confirmLabel="Evet, sil"
         busy={deleting}
         error={deleteError}
