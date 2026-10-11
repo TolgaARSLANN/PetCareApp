@@ -8,6 +8,10 @@
     radial-gradient(50% 60% at 0% 100%, var(--hero-glow-accent) 0%, transparent 60%);
 }
 
+.home-notice {
+  padding-top: var(--space-6);
+}
+
 .hero-inner {
   display: grid;
   gap: var(--space-10);
@@ -373,6 +377,48 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+}
+
+/* ---------- Hesabım ---------- */
+.account-page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.account-page .page-header {
+  margin-bottom: 0;
+}
+
+.account-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.danger-zone {
+  border-color: var(--color-danger-border);
+}
+
+.icon-tile-danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
+}
+
+.danger-text {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.danger-text ul {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-5);
+  list-style: disc;
+}
+
+.danger-text strong {
+  color: var(--color-danger-text);
 }
 
 /* ---------- Yaklaşanlar paneli ---------- */

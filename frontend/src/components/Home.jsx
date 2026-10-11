@@ -1,5 +1,6 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import Alert from "./ui/Alert";
 import {
   ArrowRight,
   CalendarCheck,
@@ -56,6 +57,7 @@ const STEPS = [
 
 const Home = () => {
   const { isLoggedIn } = useAuth();
+  const location = useLocation();
   useDocumentTitle(null);
   const primaryCta = isLoggedIn
     ? { to: "/pets", label: "Evcil dostlarıma git" }
@@ -63,6 +65,11 @@ const Home = () => {
 
   return (
     <>
+      {location.state?.accountDeleted && (
+        <div className="container home-notice">
+          <Alert type="success">Hesabınız ve tüm verileriniz kalıcı olarak silindi.</Alert>
+        </div>
+      )}
       <section className="hero">
         <div className="container hero-inner">
           <div className="hero-copy">
