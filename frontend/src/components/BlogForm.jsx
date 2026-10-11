@@ -1,90 +1,75 @@
-import React, { useState } from "react";
-import API from "../services/api";
-import "./BlogForm.css";
+import React, { useEffect, useRef, useState } from "react";
+import Alert from "./ui/Alert";
+import Field from "./ui/Field";
+import { Spinner } from "./ui/Loading";
 
-const BlogForm = ({ refreshBlogs }) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [author, setAuthor] = useState("");
-  const [image, setImage] = useState("");
+const EMPTY = { title: "", content: "", author: "", image: "" };
+
+// Yeni yazı ve düzenleme için ortak form. Kaydetme işini onSubmit yapar; hata fırlatırsa mesaj gösterilir.
+const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, autoFocus = true }) => {
+  const [values, setValues] = useState({ ...EMPTY, ...initialValues });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [busy, setBusy] = useState(false);
+  const titleRef = useRef(null);
+
+  useEffect(() => {
+    if (autoFocus) titleRef.current?.focus();
+  }, [autoFocus]);
+
+  const set = (key) => (e) => setValues((v) => ({ ...v, [key]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const trimmed = {
+      title: values.title.trim(),
+      content: values.content.trim(),
+      author: values.author.trim(),
+      image: values.image.trim(),
+    };
+    if (!trimmed.title || !trimmed.content || !trimmed.author) {
+      setError("Başlık, içerik ve yazar alanları zorunludur.");
+      return;
+    }
+    setBusy(true);
+    setError("");
     try {
-      if (!title || !content || !author) {
-        setError("Lütfen tüm zorunlu alanları doldurun.");
-        return;
-      }
-
-      const blogData = { title, content, author, image };
-      await API.post("/blogs", blogData);
-
-      setSuccess("Yazı eklendi.");
-      setTitle("");
-      setContent("");
-      setAuthor("");
-      setImage("");
-      setError("");
-
-      if (refreshBlogs) {
-        refreshBlogs(); // Blog listesi yenilenecek
-      }
+      await onSubmit(trimmed);
     } catch (err) {
-      setError("Yazı eklenemedi. Lütfen tekrar deneyin.");
+      console.error(err);
+      setError("Yazı kaydedilemedi. Lütfen tekrar deneyin.");
+      setBusy(false);
     }
   };
 
   return (
-    <div className="blog-form">
-      <h2>Yeni Blog Ekle</h2>
-      {error && <p className="error-message">{error}</p>}
-      {success && <p className="success-message">{success}</p>}
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="title">Başlık:</label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="content">İçerik:</label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-          ></textarea>
-        </div>
-        <div className="form-group">
-          <label htmlFor="author">Yazar:</label>
-          <input
-            type="text"
-            id="author"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="image">Görüntü URL (opsiyonel):</label>
-          <input
-            type="text"
-            id="image"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-          />
-        </div>
-        <button type="submit" className="btn-submit">
-          Blog Ekle
+    <form onSubmit={handleSubmit} className="form-stack">
+      {error && <Alert type="error">{error}</Alert>}
+      <Field id="blog-title" label="Başlık" required>
+        <input ref={titleRef} type="text" className="input" value={values.title} onChange={set("title")} maxLength={120} />
+      </Field>
+      <Field id="blog-content" label="İçerik" hint="Paragrafları boş satırla ayırabilirsiniz." required>
+        <textarea className="input" rows={8} value={values.content} onChange={set("content")} />
+      </Field>
+      <div className="form-grid form-grid-2">
+        <Field id="blog-author" label="Yazar adı" hint="Yazının altında görünecek isim." required>
+          <input type="text" className="input" value={values.author} onChange={set("author")} autoComplete="name" />
+        </Field>
+        <Field id="blog-image" label="Kapak görseli bağlantısı" hint="https:// ile başlayan bir görsel adresi." optional>
+          <input type="url" className="input" value={values.image} onChange={set("image")} placeholder="https://" />
+        </Field>
+      </div>
+      <div className="form-actions">
+        {onCancel && (
+          <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy}>
+            Vazgeç
+          </button>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          {busy && <Spinner size={16} />}
+          {submitLabel}
         </button>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 };
 

@@ -1,0 +1,71 @@
+import React, { useEffect, useRef } from "react";
+import { WarningCircle } from "@phosphor-icons/react";
+import { Spinner } from "./Loading";
+
+// Tarayıcının window.confirm penceresi yerine erişilebilir onay penceresi.
+// Yerel <dialog> odak tuzağını ve Escape ile kapatmayı kendisi sağlar.
+const ConfirmDialog = ({
+  open,
+  title,
+  message,
+  confirmLabel = "Sil",
+  cancelLabel = "Vazgeç",
+  busy = false,
+  error,
+  onConfirm,
+  onCancel,
+}) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+
+  return (
+    <dialog
+      ref={ref}
+      className="dialog"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-message"
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!busy) onCancel();
+      }}
+      onClick={(e) => {
+        // Arka plana tıklayınca kapat
+        if (e.target === ref.current && !busy) onCancel();
+      }}
+    >
+      <div className="dialog-content">
+        <span className="dialog-icon">
+          <WarningCircle size={24} weight="fill" aria-hidden="true" />
+        </span>
+        <h2 id="confirm-title" className="dialog-title">
+          {title}
+        </h2>
+        <p id="confirm-message" className="dialog-message">
+          {message}
+        </p>
+        {error && (
+          <p className="field-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="dialog-actions">
+          <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy} autoFocus>
+            {cancelLabel}
+          </button>
+          <button type="button" className="btn btn-danger" onClick={onConfirm} disabled={busy}>
+            {busy && <Spinner size={16} />}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+};
+
+export default ConfirmDialog;
