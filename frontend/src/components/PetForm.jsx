@@ -27,6 +27,12 @@ const PetForm = ({ selectedPet, onSaved, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Tarayıcının "zorunlu alan" kontrolü yalnızca boşluktan oluşan adı geçirir
+    if (!name.trim()) {
+      setError("Lütfen evcil dostunuzun adını yazın.");
+      nameRef.current?.focus();
+      return;
+    }
     setError("");
     setBusy(true);
     try {

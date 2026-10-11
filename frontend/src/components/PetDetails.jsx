@@ -23,6 +23,11 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 import { capitalizeTr, formatDate, petAge, sortByDateDesc, toDateInput, todayInputValue } from "../utils/format";
 import { nextVaccineDue, VACCINE_STATUS_BADGES, vaccineStatus } from "../utils/vaccines";
 
+// Metin sınırları: backend/server/models/Pet.js ile aynı
+const SHORT_TEXT = 100;
+const LONG_TEXT = 2000;
+const MAX_WEIGHT_KG = 500;
+
 const startOfToday = () => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -181,7 +186,7 @@ const PetDetails = () => {
                 <input type="date" className="input" value={v.date} max={today} onChange={set("date")} />
               </Field>
               <Field id="health-notes" label="Not" hint="Örn. genel kontrol, şikâyet, veterinerin önerisi." required>
-                <textarea className="input" rows={3} value={v.notes} onChange={set("notes")} />
+                <textarea className="input" rows={3} value={v.notes} onChange={set("notes")} maxLength={LONG_TEXT} />
               </Field>
             </>
           )}
@@ -215,7 +220,7 @@ const PetDetails = () => {
           renderFields={(v, set) => (
             <>
               <Field id="vaccine-name" label="Aşı adı" hint="Örn. Kuduz, Karma, Lösemi" required>
-                <input type="text" className="input" value={v.vaccineName} onChange={set("vaccineName")} />
+                <input type="text" className="input" value={v.vaccineName} onChange={set("vaccineName")} maxLength={SHORT_TEXT} />
               </Field>
               <div className="form-grid form-grid-2">
                 <Field id="vaccine-date" label="Uygulama tarihi" required>
@@ -238,7 +243,7 @@ const PetDetails = () => {
                 </Field>
               </div>
               <Field id="vaccine-notes" label="Not" hint="Örn. aşı markası, seri no, yan etki" optional>
-                <textarea className="input" rows={2} value={v.notes} onChange={set("notes")} />
+                <textarea className="input" rows={2} value={v.notes} onChange={set("notes")} maxLength={LONG_TEXT} />
               </Field>
             </>
           )}
@@ -283,7 +288,8 @@ const PetDetails = () => {
                   type="number"
                   className="input"
                   inputMode="decimal"
-                  min="0"
+                  min="0.01"
+                  max={MAX_WEIGHT_KG}
                   step="0.01"
                   value={v.weight}
                   onChange={set("weight")}
@@ -336,13 +342,13 @@ const PetDetails = () => {
             <>
               <div className="form-grid form-grid-2">
                 <Field id="med-name" label="İlaç adı" required>
-                  <input type="text" className="input" value={v.name} onChange={set("name")} />
+                  <input type="text" className="input" value={v.name} onChange={set("name")} maxLength={SHORT_TEXT} />
                 </Field>
                 <Field id="med-dosage" label="Doz" hint="Örn. 1 tablet, 5 ml" required>
-                  <input type="text" className="input" value={v.dosage} onChange={set("dosage")} />
+                  <input type="text" className="input" value={v.dosage} onChange={set("dosage")} maxLength={SHORT_TEXT} />
                 </Field>
                 <Field id="med-frequency" label="Sıklık" hint="Örn. günde 2 kez" optional>
-                  <input type="text" className="input" value={v.frequency} onChange={set("frequency")} />
+                  <input type="text" className="input" value={v.frequency} onChange={set("frequency")} maxLength={SHORT_TEXT} />
                 </Field>
                 <div />
                 <Field id="med-start" label="Başlangıç tarihi" optional>
@@ -359,7 +365,7 @@ const PetDetails = () => {
                 </Field>
               </div>
               <Field id="med-notes" label="Not" optional>
-                <textarea className="input" rows={2} value={v.notes} onChange={set("notes")} />
+                <textarea className="input" rows={2} value={v.notes} onChange={set("notes")} maxLength={LONG_TEXT} />
               </Field>
             </>
           )}
@@ -411,10 +417,10 @@ const PetDetails = () => {
                 <input type="time" className="input" value={v.time} onChange={set("time")} />
               </Field>
               <Field id="app-reason" label="Sebep" hint="Örn. aşı, genel kontrol" optional>
-                <input type="text" className="input" value={v.reason} onChange={set("reason")} />
+                <input type="text" className="input" value={v.reason} onChange={set("reason")} maxLength={SHORT_TEXT} />
               </Field>
               <Field id="app-location" label="Yer" hint="Örn. klinik adı" optional>
-                <input type="text" className="input" value={v.location} onChange={set("location")} />
+                <input type="text" className="input" value={v.location} onChange={set("location")} maxLength={SHORT_TEXT} />
               </Field>
             </div>
           )}
@@ -463,16 +469,16 @@ const PetDetails = () => {
           renderFields={(v, set) => (
             <div className="form-grid form-grid-2">
               <Field id="ec-name" label="Ad soyad" required>
-                <input type="text" className="input" value={v.name} onChange={set("name")} autoComplete="name" />
+                <input type="text" className="input" value={v.name} onChange={set("name")} maxLength={SHORT_TEXT} autoComplete="name" />
               </Field>
               <Field id="ec-relation" label="Yakınlık" hint="Örn. veteriner, aile" optional>
-                <input type="text" className="input" value={v.relationship} onChange={set("relationship")} />
+                <input type="text" className="input" value={v.relationship} onChange={set("relationship")} maxLength={SHORT_TEXT} />
               </Field>
               <Field id="ec-phone" label="Telefon" required>
-                <input type="tel" className="input" value={v.phone} onChange={set("phone")} autoComplete="tel" />
+                <input type="tel" className="input" value={v.phone} onChange={set("phone")} autoComplete="tel" maxLength={30} />
               </Field>
               <Field id="ec-address" label="Adres" optional>
-                <input type="text" className="input" value={v.address} onChange={set("address")} />
+                <input type="text" className="input" value={v.address} onChange={set("address")} maxLength={LONG_TEXT} />
               </Field>
             </div>
           )}

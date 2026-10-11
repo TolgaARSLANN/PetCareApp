@@ -14,6 +14,10 @@ const { AUTH_COOKIE, cookieOptions } = require('../middleware/authCookie');
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
 
+// E-postalar küçük harfle saklanır ve aranır: "Ali@Mail.com" ile "ali@mail.com" aynı hesaptır
+const normalizeEmail = (email) => email.trim().toLowerCase();
+const findByEmail = (email) => User.findOne({ email: normalizeEmail(email) });
+
 // Returns an error message, or null if the credentials look valid
 function validateCredentials(email, password) {
   if (typeof email !== 'string' || !EMAIL_PATTERN.test(email.trim())) {
@@ -43,12 +47,11 @@ router.post('/register', authLimiter, async (req, res) => {
     const validationError = validateCredentials(email, password);
     if (validationError) return res.status(400).json({ message: validationError });
 
-    const normalizedEmail = email.trim();
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingUser = await findByEmail(email);
     if (existingUser) return res.status(400).json({ message: 'Email in use' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({ email: normalizedEmail, password: hashedPassword });
+    await User.create({ email: normalizeEmail(email), password: hashedPassword });
 
     res.status(201).json({ message: 'User registered' });
   } catch (error) {
@@ -65,7 +68,7 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email: email.trim() });
+    const user = await findByEmail(email);
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
     const match = await bcrypt.compare(password, user.password);

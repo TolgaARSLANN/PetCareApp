@@ -56,7 +56,7 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(201).json(newBlog);
   } catch (err) {
     if (err.name === 'ValidationError') {
-      return res.status(400).json({ error: 'Title, content and author are required' });
+      return res.status(400).json({ error: 'Title, content and author are required (within length limits)' });
     }
     res.status(500).json({ error: 'Server error' });
   }
@@ -76,7 +76,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     res.json(updatedBlog);
   } catch (err) {
     if (err.name === 'ValidationError') {
-      return res.status(400).json({ error: 'Title, content and author are required' });
+      return res.status(400).json({ error: 'Title, content and author are required (within length limits)' });
     }
     res.status(500).json({ error: 'Server error' });
   }
