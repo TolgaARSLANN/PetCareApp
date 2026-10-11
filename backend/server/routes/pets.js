@@ -266,6 +266,77 @@ router.get('/:id/emergency-contact', authMiddleware, async (req, res) => {
   }
 });
 
+// Kayıt düzenleme ve silme
+// PUT    /:id/<tür>/:recordId  -> kaydı günceller, güncel listeyi döndürür
+// DELETE /:id/<tür>/:recordId  -> kaydı siler, güncel listeyi döndürür
+// Yalnızca aşağıda listelenen alanlar güncellenebilir.
+const RECORD_TYPES = {
+  'health-records': { field: 'healthRecords', editable: ['date', 'notes'] },
+  weight: { field: 'weightHistory', editable: ['date', 'weight'] },
+  medications: {
+    field: 'medicationRecords',
+    editable: ['name', 'dosage', 'frequency', 'startDate', 'endDate', 'notes'],
+  },
+  appointments: { field: 'appointments', editable: ['date', 'time', 'reason', 'location'] },
+  'emergency-contact': { field: 'emergencyContacts', editable: ['name', 'relationship', 'phone', 'address'] },
+};
+
+const findRecord = async (req, res, { field }) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.recordId)) {
+    res.status(404).json({ error: 'Record not found' });
+    return {};
+  }
+  const pet = await Pet.findOne({ _id: req.params.id, ownerId: req.userId });
+  if (!pet) {
+    res.status(404).json({ error: 'Pet not found or unauthorized' });
+    return {};
+  }
+  const record = pet[field].id(req.params.recordId);
+  if (!record) {
+    res.status(404).json({ error: 'Record not found' });
+    return {};
+  }
+  return { pet, record };
+};
+
+Object.entries(RECORD_TYPES).forEach(([path, type]) => {
+  router.put(`/:id/${path}/:recordId`, authMiddleware, async (req, res) => {
+    try {
+      const { pet, record } = await findRecord(req, res, type);
+      if (!pet) return;
+
+      type.editable.forEach((key) => {
+        if (req.body[key] !== undefined) {
+          // Boş bırakılan isteğe bağlı alanlar (ör. bitiş tarihi) temizlenir
+          record.set(key, req.body[key] === '' ? undefined : req.body[key]);
+        }
+      });
+      await pet.save();
+      res.json(pet[type.field]);
+    } catch (error) {
+      if (error.name === 'ValidationError' || error.name === 'CastError') {
+        return res.status(400).json({ error: 'Invalid record data' });
+      }
+      console.error(`Error updating ${path} record:`, error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  router.delete(`/:id/${path}/:recordId`, authMiddleware, async (req, res) => {
+    try {
+      const { pet, record } = await findRecord(req, res, type);
+      if (!pet) return;
+
+      record.deleteOne();
+      await pet.save();
+      res.json(pet[type.field]);
+    } catch (error) {
+      console.error(`Error deleting ${path} record:`, error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+});
+
 // Öneri sistemi (GET /:id/recommendations)
 router.get('/:id/recommendations', authMiddleware, async (req, res) => {
   try {

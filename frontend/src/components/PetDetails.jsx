@@ -19,7 +19,7 @@ import Field from "./ui/Field";
 import { PageLoader } from "./ui/Loading";
 import SpeciesIcon from "./ui/SpeciesIcon";
 import useDocumentTitle from "../hooks/useDocumentTitle";
-import { capitalizeTr, formatDate, petAge, sortByDateDesc, todayInputValue } from "../utils/format";
+import { capitalizeTr, formatDate, petAge, sortByDateDesc, toDateInput, todayInputValue } from "../utils/format";
 
 const startOfToday = () => {
   const d = new Date();
@@ -54,6 +54,23 @@ const PetDetails = () => {
   }, [id]);
 
   const today = todayInputValue();
+
+  // Bir kayıt türü için ekle / güncelle / sil çağrıları. Sunucu güncel listeyi döndürür
+  // (sağlık kaydı eklemede tüm pet döner); her durumda pet state'i güncellenir.
+  const recordApi = (path, field) => ({
+    add: async (values) => {
+      const { data } = await API.post(`/pets/${id}/${path}`, values);
+      setPet((p) => (Array.isArray(data) ? { ...p, [field]: data } : data));
+    },
+    update: async (recordId, values) => {
+      const { data } = await API.put(`/pets/${id}/${path}/${recordId}`, values);
+      setPet((p) => ({ ...p, [field]: data }));
+    },
+    remove: async (recordId) => {
+      const { data } = await API.delete(`/pets/${id}/${path}/${recordId}`);
+      setPet((p) => ({ ...p, [field]: data }));
+    },
+  });
 
   // Özet kutucukları için hesaplanan değerler
   const summary = useMemo(() => {
@@ -124,7 +141,7 @@ const PetDetails = () => {
         </dl>
       </header>
 
-      {/* Öneriler kayıtlara göre üretildiği için her yeni kayıtta yenilenir */}
+      {/* Öneriler kayıtlara göre üretildiği için her kayıt değişikliğinde yenilenir */}
       <PetRecommendations petId={id} refreshKey={pet} />
 
       <div className="record-grid">
@@ -133,14 +150,13 @@ const PetDetails = () => {
           id="health"
           icon={FirstAidKit}
           title="Sağlık kayıtları"
-          count={pet.healthRecords?.length || 0}
           emptyText="Henüz sağlık kaydı yok."
           addLabel="Kaydı ekle"
+          records={sortByDateDesc(pet.healthRecords)}
+          itemLabel={(r) => `${formatDate(r.date)} tarihli sağlık`}
           initialValues={{ date: today, notes: "" }}
-          onSubmit={async (values) => {
-            const { data } = await API.post(`/pets/${id}/health-records`, values);
-            setPet(data);
-          }}
+          toFormValues={(r) => ({ date: toDateInput(r.date), notes: r.notes || "" })}
+          api={recordApi("health-records", "healthRecords")}
           renderFields={(v, set) => (
             <>
               <Field id="health-date" label="Tarih" required>
@@ -151,32 +167,28 @@ const PetDetails = () => {
               </Field>
             </>
           )}
-        >
-          <ul className="record-list">
-            {sortByDateDesc(pet.healthRecords).map((record) => (
-              <li key={record._id || `${record.date}-${record.notes}`} className="record-item">
-                <time className="record-date" dateTime={record.date}>
-                  {formatDate(record.date)}
-                </time>
-                <p className="record-text">{record.notes}</p>
-              </li>
-            ))}
-          </ul>
-        </RecordSection>
+          renderRecord={(record) => (
+            <>
+              <time className="record-date" dateTime={record.date}>
+                {formatDate(record.date)}
+              </time>
+              <p className="record-text">{record.notes}</p>
+            </>
+          )}
+        />
 
         {/* Kilo geçmişi */}
         <RecordSection
           id="weight"
           icon={Scales}
           title="Kilo geçmişi"
-          count={pet.weightHistory?.length || 0}
           emptyText="Henüz kilo kaydı yok."
           addLabel="Kiloyu ekle"
+          records={sortByDateDesc(pet.weightHistory)}
+          itemLabel={(w) => `${formatDate(w.date)} tarihli ${w.weight} kg`}
           initialValues={{ date: today, weight: "" }}
-          onSubmit={async (values) => {
-            const { data } = await API.post(`/pets/${id}/weight`, values);
-            setPet((p) => ({ ...p, weightHistory: data }));
-          }}
+          toFormValues={(w) => ({ date: toDateInput(w.date), weight: w.weight ?? "" })}
+          api={recordApi("weight", "weightHistory")}
           renderFields={(v, set) => (
             <div className="form-grid form-grid-2">
               <Field id="weight-date" label="Tarih" required>
@@ -195,44 +207,47 @@ const PetDetails = () => {
               </Field>
             </div>
           )}
-        >
-          <ul className="record-list">
-            {sortByDateDesc(pet.weightHistory).map((w, i, list) => {
-              const prev = list[i + 1];
-              const diff = prev ? Math.round((w.weight - prev.weight) * 100) / 100 : null;
-              return (
-                <li key={w._id || `${w.date}-${w.weight}`} className="record-item record-item-row">
-                  <time className="record-date" dateTime={w.date}>
-                    {formatDate(w.date)}
-                  </time>
-                  <span className="record-value">
-                    {w.weight} kg
-                    {diff !== null && diff !== 0 && (
-                      <span className={`delta ${diff > 0 ? "delta-up" : "delta-down"}`}>
-                        {diff > 0 ? "+" : "−"}
-                        {Math.abs(diff)} kg
-                      </span>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </RecordSection>
+          renderRecord={(w, i, list) => {
+            const prev = list[i + 1];
+            const diff = prev ? Math.round((w.weight - prev.weight) * 100) / 100 : null;
+            return (
+              <div className="record-row">
+                <time className="record-date" dateTime={w.date}>
+                  {formatDate(w.date)}
+                </time>
+                <span className="record-value">
+                  {w.weight} kg
+                  {diff !== null && diff !== 0 && (
+                    <span className={`delta ${diff > 0 ? "delta-up" : "delta-down"}`}>
+                      {diff > 0 ? "+" : "−"}
+                      {Math.abs(diff)} kg
+                    </span>
+                  )}
+                </span>
+              </div>
+            );
+          }}
+        />
 
         {/* İlaç tedavileri */}
         <RecordSection
           id="meds"
           icon={Pill}
           title="İlaç tedavileri"
-          count={pet.medicationRecords?.length || 0}
           emptyText="Henüz ilaç tedavisi kaydı yok."
           addLabel="Tedaviyi ekle"
+          records={sortByDateDesc(pet.medicationRecords, "startDate")}
+          itemLabel={(m) => `${m.name} ilaç`}
           initialValues={{ name: "", dosage: "", frequency: "", startDate: today, endDate: "", notes: "" }}
-          onSubmit={async (values) => {
-            const { data } = await API.post(`/pets/${id}/medications`, values);
-            setPet((p) => ({ ...p, medicationRecords: data }));
-          }}
+          toFormValues={(m) => ({
+            name: m.name || "",
+            dosage: m.dosage || "",
+            frequency: m.frequency || "",
+            startDate: toDateInput(m.startDate),
+            endDate: toDateInput(m.endDate),
+            notes: m.notes || "",
+          })}
+          api={recordApi("medications", "medicationRecords")}
           renderFields={(v, set) => (
             <>
               <div className="form-grid form-grid-2">
@@ -264,44 +279,45 @@ const PetDetails = () => {
               </Field>
             </>
           )}
-        >
-          <ul className="record-list">
-            {sortByDateDesc(pet.medicationRecords, "startDate").map((med) => {
-              const active = !med.endDate || new Date(med.endDate) >= startOfToday();
-              return (
-                <li key={med._id || `${med.name}-${med.startDate}`} className="record-item">
-                  <div className="record-title-row">
-                    <strong>{med.name}</strong>
-                    <span className={`badge ${active ? "badge-success" : "badge-neutral"}`}>
-                      {active ? "Devam ediyor" : "Tamamlandı"}
-                    </span>
-                  </div>
-                  <p className="record-text">{[med.dosage, med.frequency].filter(Boolean).join(" · ")}</p>
-                  {(med.startDate || med.endDate) && (
-                    <p className="record-meta">
-                      {formatDate(med.startDate)} – {med.endDate ? formatDate(med.endDate) : "devam ediyor"}
-                    </p>
-                  )}
-                  {med.notes && <p className="record-meta">{med.notes}</p>}
-                </li>
-              );
-            })}
-          </ul>
-        </RecordSection>
+          renderRecord={(med) => {
+            const active = !med.endDate || new Date(med.endDate) >= startOfToday();
+            return (
+              <>
+                <div className="record-title-row">
+                  <strong>{med.name}</strong>
+                  <span className={`badge ${active ? "badge-success" : "badge-neutral"}`}>
+                    {active ? "Devam ediyor" : "Tamamlandı"}
+                  </span>
+                </div>
+                <p className="record-text">{[med.dosage, med.frequency].filter(Boolean).join(" · ")}</p>
+                {(med.startDate || med.endDate) && (
+                  <p className="record-meta">
+                    {formatDate(med.startDate)} – {med.endDate ? formatDate(med.endDate) : "devam ediyor"}
+                  </p>
+                )}
+                {med.notes && <p className="record-meta">{med.notes}</p>}
+              </>
+            );
+          }}
+        />
 
         {/* Randevular */}
         <RecordSection
           id="appointments"
           icon={CalendarCheck}
           title="Randevular"
-          count={pet.appointments?.length || 0}
           emptyText="Henüz randevu yok."
           addLabel="Randevuyu ekle"
+          records={sortByDateDesc(pet.appointments)}
+          itemLabel={(a) => `${formatDate(a.date)} tarihli randevu`}
           initialValues={{ date: "", time: "", reason: "", location: "" }}
-          onSubmit={async (values) => {
-            const { data } = await API.post(`/pets/${id}/appointments`, values);
-            setPet((p) => ({ ...p, appointments: data }));
-          }}
+          toFormValues={(a) => ({
+            date: toDateInput(a.date),
+            time: a.time || "",
+            reason: a.reason || "",
+            location: a.location || "",
+          })}
+          api={recordApi("appointments", "appointments")}
           renderFields={(v, set) => (
             <div className="form-grid form-grid-2">
               <Field id="app-date" label="Tarih" required>
@@ -318,47 +334,48 @@ const PetDetails = () => {
               </Field>
             </div>
           )}
-        >
-          <ul className="record-list">
-            {sortByDateDesc(pet.appointments).map((app) => {
-              const upcoming = app.date && new Date(app.date) >= startOfToday();
-              return (
-                <li key={app._id || `${app.date}-${app.time}`} className="record-item">
-                  <div className="record-title-row">
-                    <strong>
-                      {formatDate(app.date)}
-                      {app.time && ` · ${app.time}`}
-                    </strong>
-                    <span className={`badge ${upcoming ? "badge-info" : "badge-neutral"}`}>
-                      {upcoming ? "Yaklaşan" : "Geçmiş"}
-                    </span>
-                  </div>
-                  {app.reason && <p className="record-text">{app.reason}</p>}
-                  {app.location && (
-                    <p className="record-meta with-icon">
-                      <MapPin size={14} aria-hidden="true" />
-                      {app.location}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </RecordSection>
+          renderRecord={(app) => {
+            const upcoming = app.date && new Date(app.date) >= startOfToday();
+            return (
+              <>
+                <div className="record-title-row">
+                  <strong>
+                    {formatDate(app.date)}
+                    {app.time && ` · ${app.time}`}
+                  </strong>
+                  <span className={`badge ${upcoming ? "badge-info" : "badge-neutral"}`}>
+                    {upcoming ? "Yaklaşan" : "Geçmiş"}
+                  </span>
+                </div>
+                {app.reason && <p className="record-text">{app.reason}</p>}
+                {app.location && (
+                  <p className="record-meta with-icon">
+                    <MapPin size={14} aria-hidden="true" />
+                    {app.location}
+                  </p>
+                )}
+              </>
+            );
+          }}
+        />
 
         {/* Acil durum kişileri */}
         <RecordSection
           id="contacts"
           icon={Phone}
           title="Acil durum kişileri"
-          count={pet.emergencyContacts?.length || 0}
           emptyText="Henüz acil durum kişisi yok."
           addLabel="Kişiyi ekle"
+          records={pet.emergencyContacts || []}
+          itemLabel={(ec) => `${ec.name} kişi`}
           initialValues={{ name: "", relationship: "", phone: "", address: "" }}
-          onSubmit={async (values) => {
-            const { data } = await API.post(`/pets/${id}/emergency-contact`, values);
-            setPet((p) => ({ ...p, emergencyContacts: data }));
-          }}
+          toFormValues={(ec) => ({
+            name: ec.name || "",
+            relationship: ec.relationship || "",
+            phone: ec.phone || "",
+            address: ec.address || "",
+          })}
+          api={recordApi("emergency-contact", "emergencyContacts")}
           renderFields={(v, set) => (
             <div className="form-grid form-grid-2">
               <Field id="ec-name" label="Ad soyad" required>
@@ -375,38 +392,37 @@ const PetDetails = () => {
               </Field>
             </div>
           )}
-        >
-          <ul className="record-list">
-            {(pet.emergencyContacts || []).map((ec) => (
-              <li key={ec._id || `${ec.name}-${ec.phone}`} className="record-item">
-                <div className="record-title-row">
-                  <strong>{ec.name}</strong>
-                  {ec.relationship && <span className="badge badge-neutral">{ec.relationship}</span>}
-                </div>
-                <a className="record-link" href={`tel:${ec.phone}`}>
-                  <Phone size={14} aria-hidden="true" />
-                  {ec.phone}
-                </a>
-                {ec.address && <p className="record-meta">{ec.address}</p>}
-              </li>
-            ))}
-          </ul>
-        </RecordSection>
+          renderRecord={(ec) => (
+            <>
+              <div className="record-title-row">
+                <strong>{ec.name}</strong>
+                {ec.relationship && <span className="badge badge-neutral">{ec.relationship}</span>}
+              </div>
+              <a className="record-link" href={`tel:${ec.phone}`}>
+                <Phone size={14} aria-hidden="true" />
+                {ec.phone}
+              </a>
+              {ec.address && <p className="record-meta">{ec.address}</p>}
+            </>
+          )}
+        />
 
-        {/* Aşılar: yalnızca kayıt varsa gösterilir (eklemek için arayüz yok) */}
+        {/* Aşılar: yalnızca kayıt varsa gösterilir (arayüzden eklenmez, salt okunur) */}
         {pet.vaccines?.length > 0 && (
-          <RecordSection id="vaccines" icon={Syringe} title="Aşılar" count={pet.vaccines.length}>
-            <ul className="record-list">
-              {sortByDateDesc(pet.vaccines, "vaccineDate").map((vaccine) => (
-                <li key={vaccine._id || vaccine.vaccineName} className="record-item record-item-row">
-                  <strong>{vaccine.vaccineName}</strong>
-                  <time className="record-date" dateTime={vaccine.vaccineDate}>
-                    {formatDate(vaccine.vaccineDate)}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          </RecordSection>
+          <RecordSection
+            id="vaccines"
+            icon={Syringe}
+            title="Aşılar"
+            records={sortByDateDesc(pet.vaccines, "vaccineDate")}
+            renderRecord={(vaccine) => (
+              <div className="record-row">
+                <strong>{vaccine.vaccineName}</strong>
+                <time className="record-date" dateTime={vaccine.vaccineDate}>
+                  {formatDate(vaccine.vaccineDate)}
+                </time>
+              </div>
+            )}
+          />
         )}
       </div>
 

@@ -27,7 +27,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 |---|---|
 | 🔐 **Accounts** | Register and log in with email and password (bcrypt-hashed, JWT sessions) |
 | 🐶 **Pet Profiles** | Add, edit and delete pets; every pet is visible only to its owner |
-| 🏥 **Health Records** | Log dated health notes for each pet |
+| 🏥 **Health Records** | Log dated health notes for each pet; every record (health, weight, medication, appointment, contact) can be edited or deleted |
 | ⚖️ **Weight Tracking** | Record weight measurements over time |
 | 💊 **Medications** | Track medication name, dosage, frequency and dates |
 | 📅 **Appointments** | Keep a list of vet appointments with date, time, reason and location |
@@ -206,6 +206,7 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 | `GET` / `POST` | `/api/pets/:id/medications` | List / add medications |
 | `GET` / `POST` | `/api/pets/:id/appointments` | List / add appointments |
 | `GET` / `POST` | `/api/pets/:id/emergency-contact` | List / add emergency contacts |
+| `PUT` / `DELETE` | `/api/pets/:id/<type>/:recordId` | Edit / delete one record; `<type>` is `health-records`, `weight`, `medications`, `appointments` or `emergency-contact`. Returns the updated list |
 | `GET` | `/api/pets/:id/recommendations` | Get care recommendations |
 
 ### Blogs

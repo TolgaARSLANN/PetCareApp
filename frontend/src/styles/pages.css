@@ -535,8 +535,9 @@
 }
 
 .record-item {
-  display: grid;
-  gap: var(--space-1);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
   padding-block: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
@@ -546,11 +547,33 @@
   padding-top: 0;
 }
 
-.record-item-row {
+.record-item-editing {
+  display: block;
+}
+
+.record-body {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.record-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+}
+
+.record-actions {
+  flex-shrink: 0;
+  margin-top: -6px;
+  margin-right: -8px;
+}
+
+.record-actions .btn-icon {
+  width: 36px;
+  height: 36px;
 }
 
 .record-title-row {

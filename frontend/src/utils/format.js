@@ -35,6 +35,9 @@ export const petAge = (birthDate) => {
 export const sortByDateDesc = (items = [], key = "date") =>
   [...items].sort((a, b) => new Date(b[key] || 0) - new Date(a[key] || 0));
 
+// Kayıttaki ISO tarihini <input type="date"> değerine çevirir ("2026-03-10T00:00:00Z" -> "2026-03-10")
+export const toDateInput = (value) => (value ? String(value).slice(0, 10) : "");
+
 // <input type="date"> için bugünün tarihi (yerel saat)
 export const todayInputValue = () => {
   const d = new Date();
