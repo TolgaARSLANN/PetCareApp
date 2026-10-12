@@ -17,8 +17,9 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      // JSX'te kullanılan bileşenler (<Icon />) için: büyük harfle başlayan değişkenler kullanılmış sayılır
-      "no-unused-vars": ["error", { varsIgnorePattern: "^[A-Z_]", argsIgnorePattern: "^_" }],
+      // ESLint 10 JSX kullanımını (<Icon />) kendisi tanır; yalnızca yeni JSX dönüşümünde gerekmeyen
+      // "import React" satırları serbest (kullanılmayan bileşen içe aktarmaları yakalanır)
+      "no-unused-vars": ["error", { varsIgnorePattern: "^(React$|_)", argsIgnorePattern: "^_" }],
       // Hızlı yenileme (Fast Refresh) için dosyalar yalnızca bileşen dışa aktarmalı
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },

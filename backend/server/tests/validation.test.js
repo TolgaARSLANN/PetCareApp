@@ -99,6 +99,7 @@ describe('invalid data is a 400, not a 500', () => {
 
 describe('PUT /api/pets/:id', () => {
   test('runs the model rules, so an empty name cannot break the pet', async () => {
+    jest.spyOn(Pet, 'findOne').mockReturnValue({ select: () => Promise.resolve({ photo: undefined }) });
     const update = jest.spyOn(Pet, 'findOneAndUpdate').mockResolvedValue({});
     const userId = newId();
     await request(app)

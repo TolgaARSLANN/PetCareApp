@@ -8,7 +8,7 @@ import Alert from "./ui/Alert";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import EmptyState from "./ui/EmptyState";
 import { SkeletonCards } from "./ui/Loading";
-import SpeciesIcon from "./ui/SpeciesIcon";
+import PetAvatar from "./ui/PetAvatar";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import { capitalizeTr, formatDate, petAge } from "../utils/format";
 
@@ -163,9 +163,7 @@ const PetList = () => {
             return (
               <li key={pet._id} className="card pet-card">
                 <div className="pet-card-head">
-                  <span className={`avatar avatar-${pet.species || "diğer"}`}>
-                    <SpeciesIcon species={pet.species} size={28} />
-                  </span>
+                  <PetAvatar pet={pet} />
                   <div className="pet-card-heading">
                     <h2 className="pet-card-name">{pet.name}</h2>
                     <span className="badge">{capitalizeTr(pet.species) || "Belirtilmemiş"}</span>

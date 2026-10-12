@@ -27,7 +27,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 | Feature | Description |
 |---|---|
 | 🔐 **Accounts** | Register (the password is typed twice) and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the password (which signs out other devices), sign out of all devices, download all of your data as a JSON file, or permanently delete the account with all its pets and posts |
-| 🐶 **Pet Profiles** | Add, edit and delete pets; every pet is visible only to its owner |
+| 🐶 **Pet Profiles** | Add, edit and delete pets with an optional photo from your device; every pet is visible only to its owner |
 | 🏥 **Health Records** | Log dated health notes for each pet; every record (health, vaccine, weight, medication, appointment, contact) can be edited or deleted |
 | 💉 **Vaccines** | Record vaccines with the date given and the booster due date; overdue and upcoming (30 days) boosters are flagged |
 | ⚖️ **Weight Tracking** | Record weight measurements over time; a line chart shows the trend (hover or arrow keys for each value) |
@@ -155,8 +155,8 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 | `NODE_ENV` | — | Set to `production` when deployed (session cookie becomes HTTPS-only) |
 | `AUTH_RATE_LIMIT` | `10` | Failed login / register attempts per IP per 15 minutes |
 | `API_RATE_LIMIT` | `1000` | API requests per IP per 15 minutes |
-| `PHOTO_UPLOADS_PER_HOUR` | `20` | Blog cover photo uploads per user per hour |
-| `PHOTO_STORAGE_MB` | `25` | Total size of one user's cover photos |
+| `PHOTO_UPLOADS_PER_HOUR` | `20` | Photo uploads (blog covers and pet photos) per user per hour |
+| `PHOTO_STORAGE_MB` | `25` | Total size of one user's photos (blog covers and pet photos) |
 | `IMAGE_RATE_LIMIT` | `600` | Photo requests per IP per 15 minutes (photos have their own limit; a blog page shows 9) |
 | `TRUST_PROXY` | `0` | Reverse proxies in front of the API (usually `1` when hosted), so rate limits see the real client IP |
 
@@ -210,7 +210,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 - **Same-site API:** because of `SameSite=Strict`, the frontend must reach the API on its own address under `/api`. In development the Vite proxy does this; when deploying, add a rewrite on the frontend host (for example a Vercel rewrite of `/api/:path*` to the backend URL) and set `TRUST_PROXY=1` on the backend.
 - **Input validation:** the API enforces the same rules as the forms (required fields, trimmed text with length limits, positive weights up to 500 kg, no future birth dates), also when updating. Invalid data gets a `400 { "error": "Invalid record data" }`, never a `500`. Emails are stored in lower case, so `Ali@Mail.com` and `ali@mail.com` are the same account. Blog cover photos are checked by their content (only real JPEG, PNG or WebP, at most 2 MB and 4096 px per side, read from the file header so a small file that opens as a huge image is refused). Only uploaded photos can be set as a cover; images from other websites are refused, and older posts keep their existing `https://` image until it is changed. Passwords are limited to 72 bytes, the part bcrypt actually uses (Turkish letters such as ğ count as 2).
 - **Brute-force protection:** at most 10 failed attempts per IP per 15 minutes across login, register, password change and account deletion (`429` afterwards); successful attempts don't count. A failed login takes the same time whether or not the email is registered.
-- **Photo uploads:** each user can upload 20 cover photos per hour and keep 25 MB of photos in total, so one account cannot fill the database; uploads from the same user are handled one at a time, so simultaneous requests cannot go over the storage limit together. Photo downloads are limited per IP (600 per 15 minutes). A request with a large body (a post with a photo) is only parsed after the session is checked; strangers get a `401` without the server parsing their body.
+- **Photo uploads** (blog covers and pet photos share the same rules)**:** each user can upload 20 photos per hour and keep 25 MB of photos in total, so one account cannot fill the database; uploads from the same user are handled one at a time, so simultaneous requests cannot go over the storage limit together. Photo downloads are limited per IP (600 per 15 minutes). A request with a large body (a post or pet with a photo) is only parsed after the session is checked; strangers get a `401` without the server parsing their body.
 - **Rate limit:** 1000 API requests per IP per 15 minutes.
 - **Security headers** via [helmet](https://helmetjs.github.io/) (no-sniff, frame denial, HSTS, CSP, no `X-Powered-By`).
 - **Request size:** JSON bodies are limited to 100 KB; malformed JSON returns `400`.
@@ -243,9 +243,9 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/pets` | List your pets |
-| `POST` | `/api/pets` | Add a pet |
+| `POST` | `/api/pets` | Add a pet; optional `photoData` (data URL of a JPEG/PNG/WebP photo) |
 | `GET` | `/api/pets/:id` | Get one pet |
-| `PUT` | `/api/pets/:id` | Update a pet |
+| `PUT` | `/api/pets/:id` | Update a pet; `photoData` replaces the photo, `photo: ""` removes it (the old photo is deleted) |
 | `DELETE` | `/api/pets/:id` | Delete a pet |
 | `GET` / `POST` | `/api/pets/:id/health-records` | List / add health records (adding returns the updated list, like the other record types) |
 | `GET` / `POST` | `/api/pets/:id/vaccines` | List / add vaccines (`vaccineName`, `vaccineDate`, optional `nextDueDate`, `notes`) |

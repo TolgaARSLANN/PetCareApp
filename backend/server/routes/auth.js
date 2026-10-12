@@ -133,7 +133,7 @@ router.get('/account', authMiddleware, async (req, res) => {
 
 // Verilerimi indir (KVKK/GDPR veri taşınabilirliği): hesabın tüm verileri tek bir JSON dosyası olarak.
 // Parola özeti, oturum sürümü ve iç alanlar (__v, ownerId, authorId) dosyaya girmez.
-const withoutInternals = ({ __v, ownerId, authorId, imageId, ...rest }) => rest;
+const withoutInternals = ({ __v, ownerId, authorId, imageId, photoId, ...rest }) => rest;
 
 router.get('/account/export', authMiddleware, async (req, res) => {
   try {

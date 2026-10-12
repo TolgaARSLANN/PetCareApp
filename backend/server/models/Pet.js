@@ -27,6 +27,13 @@ const petSchema = new mongoose.Schema({
     set: (v) => (typeof v === 'string' ? v.trim().toLocaleLowerCase('tr-TR') : v),
   },
   birthDate: { type: Date, validate: notInFuture },
+  // Evcil dostun fotoğrafı: yalnızca yüklenen fotoğraf (/api/images/<id>, sunucu atar)
+  photo: {
+    type: String,
+    validate: { validator: (v) => !v || /^\/api\/images\/[0-9a-f]{24}$/.test(v), message: 'Invalid photo' },
+  },
+  // Fotoğrafın kaydı: evcil dost silinince ya da fotoğraf değişince bu kayıt da silinir
+  photoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
   vaccines: [
     {
       vaccineName: text(SHORT_TEXT, true),
