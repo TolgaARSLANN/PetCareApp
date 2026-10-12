@@ -14,6 +14,8 @@ const IMAGE_ERRORS = {
   "Image is too large": "Fotoğraf çok büyük. Lütfen başka bir fotoğraf deneyin.",
   "Only JPEG, PNG and WebP images are accepted": "Yalnızca JPEG, PNG ve WebP fotoğraflar kabul edilir.",
   "Image content does not match its type": "Bu dosya bir fotoğraf gibi görünmüyor.",
+  "Image could not be read": "Bu fotoğraf okunamadı. Lütfen başka bir fotoğraf deneyin.",
+  "Image dimensions are too large": "Fotoğrafın ölçüleri çok büyük (en fazla 4096 piksel).",
   "Too many photo uploads, please try again later":
     "Son bir saatte çok fazla fotoğraf yüklediniz. Lütfen biraz sonra tekrar deneyin ya da yazıyı fotoğrafsız yayınlayın.",
   "Photo storage limit reached":

@@ -7,11 +7,49 @@ const { newId, tokenFor } = require('./helpers');
 
 afterEach(() => jest.restoreAllMocks());
 
-// Yalnızca imza baytları gerçek olan küçük "dosyalar" (içerik doğrulaması imzaya bakar)
+// Küçük "dosyalar": imza baytları ve piksel ölçülerini taşıyan başlıkları gerçek, gerisi dolgu.
+// Sunucu dosyayı açmaz; yalnızca imzaya ve başlıktaki ölçülere bakar.
 const pad = (head, size = 64) => Buffer.concat([head, Buffer.alloc(size)]);
-const JPEG = pad(Buffer.from([0xff, 0xd8, 0xff, 0xe0]));
-const PNG = pad(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-const WEBP = pad(Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]));
+const u16be = (n) => [(n >> 8) & 0xff, n & 0xff];
+const u16le = (n) => [n & 0xff, (n >> 8) & 0xff];
+const u24le = (n) => [n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff];
+
+// JPEG: SOI, APP0 (JFIF), SOF0 (ölçüler)
+// prettier-ignore
+const jpegHead = (width, height) =>
+  Buffer.from([
+    0xff, 0xd8,
+    0xff, 0xe0, 0x00, 0x10, ...Buffer.from('JFIF'), 0, 1, 1, 0, 0, 1, 0, 1, 0, 0,
+    0xff, 0xc0, 0x00, 0x11, 0x08, ...u16be(height), ...u16be(width), 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1,
+  ]);
+// PNG: imza + IHDR (ölçüler)
+const pngHead = (width, height) => {
+  const ihdr = Buffer.alloc(25);
+  ihdr.writeUInt32BE(13, 0);
+  ihdr.write('IHDR', 4, 'ascii');
+  ihdr.writeUInt32BE(width, 8);
+  ihdr.writeUInt32BE(height, 12);
+  ihdr[16] = 8;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), ihdr]);
+};
+// WebP: kayıplı (VP8), kayıpsız (VP8L), genişletilmiş (VP8X)
+const riff = (chunk, body) =>
+  Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from(`WEBP${chunk}`), Buffer.alloc(4), body]);
+const webpVp8 = (width, height) =>
+  riff('VP8 ', Buffer.from([0, 0, 0, 0x9d, 0x01, 0x2a, ...u16le(width), ...u16le(height)]));
+const webpVp8l = (width, height) => {
+  const bits = (width - 1) | ((height - 1) << 14);
+  return riff(
+    'VP8L',
+    Buffer.from([0x2f, bits & 0xff, (bits >>> 8) & 0xff, (bits >>> 16) & 0xff, (bits >>> 24) & 0xff])
+  );
+};
+const webpVp8x = (width, height) =>
+  riff('VP8X', Buffer.from([0x10, 0, 0, 0, ...u24le(width - 1), ...u24le(height - 1)]));
+
+const JPEG = pad(jpegHead(1600, 1200));
+const PNG = pad(pngHead(800, 600));
+const WEBP = pad(webpVp8(1600, 1200));
 const GIF = pad(Buffer.from('GIF89a'));
 const dataUrl = (type, buffer) => `data:${type};base64,${buffer.toString('base64')}`;
 
@@ -40,6 +78,39 @@ describe('parseImageDataUrl', () => {
     expect(message(dataUrl('image/jpeg', PNG))).toEqual([400, 'Image content does not match its type']);
     expect(message(dataUrl('text/html', Buffer.from('<script>alert(1)</script>')))[0]).toBe(400);
     expect(message(42)[0]).toBe(400);
+  });
+
+  test('reads the pixel size of every format from its header, without opening the file', () => {
+    const size = (type, buffer) => {
+      const { width, height } = parseImageDataUrl(dataUrl(type, pad(buffer)));
+      return [width, height];
+    };
+    expect(size('image/jpeg', jpegHead(1600, 1200))).toEqual([1600, 1200]);
+    expect(size('image/png', pngHead(800, 600))).toEqual([800, 600]);
+    expect(size('image/webp', webpVp8(1600, 1200))).toEqual([1600, 1200]);
+    expect(size('image/webp', webpVp8l(1200, 1600))).toEqual([1200, 1600]);
+    expect(size('image/webp', webpVp8x(1024, 768))).toEqual([1024, 768]);
+  });
+
+  test('refuses "photo bombs": small files that open as huge images', () => {
+    const tooBig = [
+      ['image/png', pngHead(20000, 20000)],
+      ['image/jpeg', jpegHead(4097, 100)],
+      ['image/webp', webpVp8l(100, 5000)],
+      ['image/webp', webpVp8x(16000, 16000)],
+    ];
+    tooBig.forEach(([type, head]) =>
+      expect(() => parseImageDataUrl(dataUrl(type, pad(head)))).toThrow('Image dimensions are too large')
+    );
+    // 4096 px tam sınırda kabul edilir
+    expect(parseImageDataUrl(dataUrl('image/png', pad(pngHead(4096, 4096)))).width).toBe(4096);
+  });
+
+  test('refuses files whose size cannot be read', () => {
+    const noFrameHeader = pad(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0, 0, 0xff, 0xda]));
+    expect(() => parseImageDataUrl(dataUrl('image/jpeg', noFrameHeader))).toThrow('Image could not be read');
+    const zeroSize = pad(pngHead(0, 600));
+    expect(() => parseImageDataUrl(dataUrl('image/png', zeroSize))).toThrow('Image could not be read');
   });
 
   test('rejects images over 2 MB', () => {
@@ -110,6 +181,14 @@ describe('blog cover photos', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Only JPEG, PNG and WebP images are accepted');
     expect(create).not.toHaveBeenCalled();
+  });
+
+  test('a new post cannot use an image from another website', async () => {
+    const res = await request(app)
+      .post('/api/blogs')
+      .set('Authorization', auth)
+      .send({ ...post, image: 'https://tracker.example/pixel.gif' });
+    expect(res.status).toBe(400);
   });
 
   test('a post cannot point at an uploaded photo it does not own', async () => {
@@ -197,6 +276,23 @@ describe('blog cover photos', () => {
       const res = await put({ ...post, image: `/api/images/${newId()}` });
       expect(res.status).toBe(400);
     });
+  });
+
+  test('an older post keeps its https image when edited, but cannot switch to another website', async () => {
+    const legacy = new Blog({ ...post, authorId: userId, image: 'https://example.com/eski.jpg' });
+    jest.spyOn(legacy, 'save').mockImplementation(async function save() {
+      await this.validate();
+      return this;
+    });
+    jest.spyOn(Blog, 'findOne').mockResolvedValue(legacy);
+    const put = (body) => request(app).put(`/api/blogs/${newId()}`).set('Authorization', auth).send(body);
+
+    const kept = await put({ ...post, title: 'Yeni başlık', image: 'https://example.com/eski.jpg' });
+    expect(kept.status).toBe(200);
+    expect(kept.body.image).toBe('https://example.com/eski.jpg');
+
+    const switched = await put({ ...post, image: 'https://tracker.example/pixel.gif' });
+    expect(switched.status).toBe(400);
   });
 
   test('deleting a post deletes its photo', async () => {
