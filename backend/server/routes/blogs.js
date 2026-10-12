@@ -69,9 +69,11 @@ const sendBlogError = (res, err, logMessage) => {
   return res.status(500).json({ error: 'Server error' });
 };
 
-// İstemci kapak görseli olarak yalnızca https adresi verebilir; /api/images/... adresini sunucu atar
-// (başkasının fotoğrafını kendi yazısına bağlayıp silinmesine yol açamasın diye)
-const isUploadedImagePath = (value) => typeof value === 'string' && value.startsWith('/api/images/');
+// Kapak görseli yalnızca yüklenen fotoğraf olabilir; adresini (/api/images/...) sunucu atar.
+// İstemci yeni bir adres veremez: başkasının fotoğrafına bağlanamaz ve dış bir siteden görsel
+// (okuyucuların IP'sini toplayan bir "takip pikseli" olabilir) koyamaz. Eski yazılardaki https
+// adresleri değiştirilmedikçe kalır.
+const isNewImageAddress = (value, current) => typeof value === 'string' && value !== '' && value !== current;
 
 // Fotoğrafı saklar ve yazıya bağlar. Fotoğraf yalnızca yazı geçerliyse ve kullanıcının toplam fotoğraf
 // alanı yetiyorsa saklanır. replacingId: değiştirilen fotoğraf (silineceği için alana sayılmaz).
@@ -99,7 +101,7 @@ router.post('/', authMiddleware, photoJson, photoUploadLimiter, async (req, res)
   let savedImage = null;
   try {
     const { title, content, author, image, imageData } = req.body;
-    if (isUploadedImagePath(image)) return res.status(400).json({ error: 'Invalid image' });
+    if (isNewImageAddress(image, undefined)) return res.status(400).json({ error: 'Invalid image' });
 
     const blog = new Blog({ title, content, author, image, authorId: req.userId });
     if (imageData) savedImage = await attachImage(blog, imageData, req.userId);
@@ -122,16 +124,14 @@ router.put('/:id', authMiddleware, photoJson, photoUploadLimiter, async (req, re
     if (!blog) return res.status(404).json({ error: 'Blog not found or unauthorized' });
 
     const { title, content, author, image, imageData } = req.body;
-    if (isUploadedImagePath(image) && image !== blog.image) {
-      return res.status(400).json({ error: 'Invalid image' });
-    }
+    if (isNewImageAddress(image, blog.image)) return res.status(400).json({ error: 'Invalid image' });
 
     const previousImageId = blog.imageId;
     blog.set({ title, content, author });
     if (imageData) {
       savedImage = await attachImage(blog, imageData, req.userId, previousImageId);
-    } else if (image !== undefined && image !== blog.image) {
-      blog.image = image || undefined; // başka bir https adresi ya da kaldırma ("" gelirse)
+    } else if (image === '' && blog.image) {
+      blog.image = undefined; // fotoğrafı kaldırma
       blog.imageId = undefined;
     }
     await blog.save();

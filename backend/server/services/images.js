@@ -11,6 +11,54 @@ const SIGNATURES = {
   'image/webp': (b) => b.length > 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP',
 };
 
+// En büyük kenar. Bizim form en fazla 1600 px gönderir. Asıl amaç "fotoğraf bombası"nı durdurmak:
+// küçük bir dosya (ör. 380 KB'lık tek renk PNG) açılınca yüzlerce MB bellek isteyip o yazıyı görüntüleyen
+// herkesin tarayıcısını kilitleyebilir. Ölçüler dosya açılmadan başlıktan okunur.
+const MAX_DIMENSION = 4096;
+
+// Piksel ölçülerini dosya başlığından okur; okunamazsa null
+const DIMENSION_READERS = {
+  'image/png': (b) => (b.length >= 24 ? { width: b.readUInt32BE(16), height: b.readUInt32BE(20) } : null),
+
+  // JPEG: işaretçiler (FF xx) arasında çerçeve başlığını (SOF) arar
+  'image/jpeg': (b) => {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) return null;
+      const marker = b[i + 1];
+      if (marker === 0xff) {
+        i += 1; // dolgu baytı
+        continue;
+      }
+      // Uzunluğu olmayan işaretçiler
+      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) {
+        i += 2;
+        continue;
+      }
+      if (marker === 0xd9 || marker === 0xda) return null; // görüntü verisi SOF'tan önce başladı
+      const isSof = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+      if (isSof) return { height: b.readUInt16BE(i + 5), width: b.readUInt16BE(i + 7) };
+      i += 2 + b.readUInt16BE(i + 2);
+    }
+    return null;
+  },
+
+  // WebP: kayıplı (VP8), kayıpsız (VP8L) ya da genişletilmiş (VP8X, ör. saydamlık) biçim
+  'image/webp': (b) => {
+    if (b.length < 30) return null;
+    const format = b.toString('ascii', 12, 16);
+    if (format === 'VP8 ' && b[23] === 0x9d && b[24] === 0x01 && b[25] === 0x2a) {
+      return { width: b.readUInt16LE(26) & 0x3fff, height: b.readUInt16LE(28) & 0x3fff };
+    }
+    if (format === 'VP8L' && b[20] === 0x2f) {
+      const bits = b.readUInt32LE(21);
+      return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
+    }
+    if (format === 'VP8X') return { width: b.readUIntLE(24, 3) + 1, height: b.readUIntLE(27, 3) + 1 };
+    return null;
+  },
+};
+
 class ImageError extends Error {
   constructor(message, status = 400) {
     super(message);
@@ -33,7 +81,13 @@ function parseImageDataUrl(value) {
   const actualType = Object.keys(SIGNATURES).find((type) => SIGNATURES[type](data));
   if (!actualType) throw new ImageError('Only JPEG, PNG and WebP images are accepted');
   if (actualType !== declaredType) throw new ImageError('Image content does not match its type');
-  return { contentType: actualType, data };
+
+  const size = DIMENSION_READERS[actualType](data);
+  if (!size || !size.width || !size.height) throw new ImageError('Image could not be read');
+  if (size.width > MAX_DIMENSION || size.height > MAX_DIMENSION) {
+    throw new ImageError('Image dimensions are too large');
+  }
+  return { contentType: actualType, data, ...size };
 }
 
 const imageUrl = (id) => `/api/images/${id}`;
@@ -46,4 +100,4 @@ async function usedPhotoBytes(Image, ownerId, exceptId) {
   return row?.total || 0;
 }
 
-module.exports = { parseImageDataUrl, imageUrl, usedPhotoBytes, ImageError, MAX_IMAGE_BYTES };
+module.exports = { parseImageDataUrl, imageUrl, usedPhotoBytes, ImageError, MAX_IMAGE_BYTES, MAX_DIMENSION };
