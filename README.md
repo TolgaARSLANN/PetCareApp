@@ -157,6 +157,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 | `API_RATE_LIMIT` | `1000` | API requests per IP per 15 minutes |
 | `PHOTO_UPLOADS_PER_HOUR` | `20` | Blog cover photo uploads per user per hour |
 | `PHOTO_STORAGE_MB` | `25` | Total size of one user's cover photos |
+| `IMAGE_RATE_LIMIT` | `600` | Photo requests per IP per 15 minutes (photos have their own limit; a blog page shows 9) |
 | `TRUST_PROXY` | `0` | Reverse proxies in front of the API (usually `1` when hosted), so rate limits see the real client IP |
 
 Start the server:
@@ -209,7 +210,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 - **Same-site API:** because of `SameSite=Strict`, the frontend must reach the API on its own address under `/api`. In development the Vite proxy does this; when deploying, add a rewrite on the frontend host (for example a Vercel rewrite of `/api/:path*` to the backend URL) and set `TRUST_PROXY=1` on the backend.
 - **Input validation:** the API enforces the same rules as the forms (required fields, trimmed text with length limits, positive weights up to 500 kg, no future birth dates), also when updating. Invalid data gets a `400 { "error": "Invalid record data" }`, never a `500`. Emails are stored in lower case, so `Ali@Mail.com` and `ali@mail.com` are the same account. Blog cover photos are checked by their content (only real JPEG, PNG or WebP, at most 2 MB); older posts may still use an `https://` image URL. Passwords are limited to 72 bytes, the part bcrypt actually uses (Turkish letters such as ğ count as 2).
 - **Brute-force protection:** at most 10 failed attempts per IP per 15 minutes across login, register, password change and account deletion (`429` afterwards); successful attempts don't count. A failed login takes the same time whether or not the email is registered.
-- **Photo uploads:** each user can upload 20 cover photos per hour and keep 25 MB of photos in total, so one account cannot fill the database. A request with a large body (a post with a photo) is only parsed after the session is checked; strangers get a `401` without the server parsing their body.
+- **Photo uploads:** each user can upload 20 cover photos per hour and keep 25 MB of photos in total, so one account cannot fill the database; uploads from the same user are handled one at a time, so simultaneous requests cannot go over the storage limit together. Photo downloads are limited per IP (600 per 15 minutes). A request with a large body (a post with a photo) is only parsed after the session is checked; strangers get a `401` without the server parsing their body.
 - **Rate limit:** 1000 API requests per IP per 15 minutes.
 - **Security headers** via [helmet](https://helmetjs.github.io/) (no-sniff, frame denial, HSTS, CSP, no `X-Powered-By`).
 - **Request size:** JSON bodies are limited to 100 KB; malformed JSON returns `400`.
@@ -264,7 +265,7 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 | `POST` | `/api/blogs` 🔒 | Create a post; an optional `imageData` (data URL of a JPEG/PNG/WebP photo) is stored as its cover |
 | `PUT` | `/api/blogs/:id` 🔒 | Update your own post; `imageData` replaces the photo, `image: ""` removes it (the old photo is deleted) |
 | `DELETE` | `/api/blogs/:id` 🔒 | Delete your own post |
-| `GET` | `/api/images/:id` | A post's cover photo (cached by the browser for a week) |
+| `GET` | `/api/images/:id` | A post's cover photo (cached by the browser for a week; 600 requests per IP per 15 minutes) |
 
 ---
 

@@ -38,4 +38,13 @@ const photoUploadLimiter = rateLimit({
   message: { error: 'Too many photo uploads, please try again later' },
 });
 
-module.exports = { authLimiter, apiLimiter, photoUploadLimiter };
+// Photo downloads per IP (see config.imageRateLimit)
+const imageLimiter = rateLimit({
+  windowMs: FIFTEEN_MINUTES,
+  limit: config.imageRateLimit,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
+
+module.exports = { authLimiter, apiLimiter, photoUploadLimiter, imageLimiter };

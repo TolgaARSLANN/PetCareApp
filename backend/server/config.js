@@ -27,6 +27,10 @@ const config = {
   // Without them one account could fill the database (each upload is up to 2 MB).
   photoUploadsPerHour: Number(process.env.PHOTO_UPLOADS_PER_HOUR) || 20,
   photoStorageMb: Number(process.env.PHOTO_STORAGE_MB) || 25,
+  // Photo requests (GET /api/images/:id) per IP in a 15-minute window. Separate from apiRateLimit
+  // because one blog page shows 9 photos; browsers cache photos for a week, so readers rarely
+  // come close. Without a limit one client could pull gigabytes from the database.
+  imageRateLimit: Number(process.env.IMAGE_RATE_LIMIT) || 600,
 };
 
 if (!config.jwtSecret) {

@@ -305,6 +305,41 @@ describe('abuse limits', () => {
     expect(String(owner)).toBe(String(userId));
   });
 
+  test('uploads sent at the same time cannot together go over the storage limit', async () => {
+    // Veritabanı yerine: saklanan fotoğraflar listesi; sayma ve kaydetme gecikmeli (gerçek bir veritabanı gibi)
+    const stored = [];
+    const tick = () => new Promise((r) => setTimeout(r, 5));
+    jest.spyOn(Image, 'aggregate').mockImplementation(async () => {
+      await tick();
+      return [{ _id: null, total: stored.reduce((sum, size) => sum + size, 0) }];
+    });
+    jest.spyOn(Image, 'create').mockImplementation(async (doc) => {
+      await tick();
+      stored.push(doc.size);
+      return { _id: newId(), ...doc };
+    });
+    jest.spyOn(Blog.prototype, 'save').mockImplementation(async function save() {
+      return this;
+    });
+    const auth = `Bearer ${tokenFor(newId())}`;
+    const photo = dataUrl('image/jpeg', pad(JPEG, 1.5 * 1024 * 1024)); // ~1.5 MB
+
+    const statuses = await Promise.all(
+      Array.from({ length: 18 }, () =>
+        request(app)
+          .post('/api/blogs')
+          .set('Authorization', auth)
+          .send({ ...post, imageData: photo })
+          .then((r) => r.status)
+      )
+    );
+
+    const total = stored.reduce((sum, size) => sum + size, 0);
+    expect(total).toBeLessThanOrEqual(25 * 1024 * 1024);
+    expect(statuses.filter((s) => s === 201)).toHaveLength(16); // 16 × 1.5 MB = 24 MB
+    expect(statuses.filter((s) => s === 413)).toHaveLength(2);
+  });
+
   test('replacing a photo does not count the photo being replaced', async () => {
     const userId = newId();
     const oldImageId = newId();
