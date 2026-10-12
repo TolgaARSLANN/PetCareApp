@@ -8,6 +8,7 @@ const config = require('../config');
 const { parseImageDataUrl, imageUrl, usedPhotoBytes, ImageError } = require('../services/images');
 const authMiddleware = require('../middleware/authMiddleware');
 const { photoUploadLimiter } = require('../middleware/rateLimits');
+const { withUserLock } = require('../services/userLock');
 
 // Kapak fotoğrafı taşıyabilen gövde (base64, en fazla 2 MB) yalnızca oturum doğrulandıktan sonra okunur:
 // giriş yapmamış biri sunucuya büyük gövde ayrıştırtamasın. Uygulamanın genel ayrıştırıcısı bu iki
@@ -79,11 +80,15 @@ const attachImage = async (blog, imageData, ownerId, replacingId) => {
   await blog.validate();
   // aggregate kimliği kendiliğinden dönüştürmez: metin kimlikle hiçbir fotoğraf eşleşmez, sınır işlemezdi
   const owner = new mongoose.Types.ObjectId(String(ownerId));
-  const used = await usedPhotoBytes(Image, owner, replacingId);
-  if (used + data.length > config.photoStorageMb * 1024 * 1024) {
-    throw new ImageError('Photo storage limit reached', 413);
-  }
-  const image = await Image.create({ data, contentType, size: data.length, ownerId });
+  // Sayma ve kaydetme aynı kullanıcı için sırayla yapılır: aynı anda gelen yüklemeler birbirinin
+  // kaydını görmeden alanı aşmasın
+  const image = await withUserLock(owner, async () => {
+    const used = await usedPhotoBytes(Image, owner, replacingId);
+    if (used + data.length > config.photoStorageMb * 1024 * 1024) {
+      throw new ImageError('Photo storage limit reached', 413);
+    }
+    return Image.create({ data, contentType, size: data.length, ownerId });
+  });
   blog.image = imageUrl(image._id);
   blog.imageId = image._id;
   return image;

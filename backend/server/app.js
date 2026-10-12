@@ -6,7 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const config = require('./config');
-const { apiLimiter } = require('./middleware/rateLimits');
+const { apiLimiter, imageLimiter } = require('./middleware/rateLimits');
 
 const authRoutes = require('./routes/auth');
 const petRoutes = require('./routes/pets');
@@ -35,8 +35,8 @@ app.get('/', (req, res) => {
   res.send('Pet Care API running...');
 });
 
-// Fotoğraflar genel istek sınırının dışında: bir blog sayfası tek seferde 9 fotoğraf ister
-app.use('/api/images', imageRoutes);
+// Fotoğrafların kendi, daha cömert sınırı var: bir blog sayfası tek seferde 9 fotoğraf ister
+app.use('/api/images', imageLimiter, imageRoutes);
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
