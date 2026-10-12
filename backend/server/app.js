@@ -23,11 +23,14 @@ app.use(helmet());
 
 // CORS: only the configured frontend origin may call the API, with cookies
 app.use(cors({ origin: config.clientOrigin, credentials: true }));
-// JSON gövdeler en fazla 100 KB. Blog yazma istekleri (kapak fotoğrafı taşıyabilir) burada atlanır;
-// onların gövdesi routes/blogs.js'te, oturum doğrulandıktan sonra 3 MB sınırla okunur.
+// JSON gövdeler en fazla 100 KB. Fotoğraf taşıyabilen istekler (blog yazısı, evcil dost ekleme ve
+// düzenleme) burada atlanır; onların gövdesi rotada, oturum doğrulandıktan sonra 3 MB sınırla okunur
+// (services/photoStore.js, photoJson).
 const smallJson = express.json({ limit: '100kb' });
-const isBlogWrite = (req) => req.path.startsWith('/api/blogs') && (req.method === 'POST' || req.method === 'PUT');
-app.use((req, res, next) => (isBlogWrite(req) ? next() : smallJson(req, res, next)));
+const isPhotoWrite = (req) =>
+  (req.method === 'POST' && (req.path === '/api/blogs' || req.path === '/api/pets')) ||
+  (req.method === 'PUT' && /^\/api\/(blogs|pets)\/[^/]+$/.test(req.path));
+app.use((req, res, next) => (isPhotoWrite(req) ? next() : smallJson(req, res, next)));
 app.use(cookieParser());
 
 // Health check

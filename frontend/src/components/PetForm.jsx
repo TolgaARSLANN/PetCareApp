@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import API from "../services/api";
 import Alert from "./ui/Alert";
 import Field from "./ui/Field";
+import PhotoPicker from "./ui/PhotoPicker";
 import { Spinner } from "./ui/Loading";
 import { capitalizeTr, todayInputValue } from "../utils/format";
+import { photoErrorMessage } from "../utils/photoErrors";
 
 // Öneri sistemi bu değerlerle çalışır (backend/server/routes/pets.js)
 const SPECIES_OPTIONS = ["kedi", "köpek", "kuş", "diğer"];
@@ -13,6 +15,10 @@ const PetForm = ({ selectedPet, onSaved, onCancel }) => {
   const [name, setName] = useState(selectedPet?.name || "");
   const [species, setSpecies] = useState((selectedPet?.species || "").toLocaleLowerCase("tr-TR"));
   const [birthDate, setBirthDate] = useState(selectedPet?.birthDate?.split("T")[0] || "");
+  // Fotoğraf: currentPhoto kayıtlı fotoğrafın adresi, newPhoto seçilen ve küçültülmüş fotoğraf
+  const [currentPhoto, setCurrentPhoto] = useState(selectedPet?.photo || "");
+  const [newPhoto, setNewPhoto] = useState(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const nameRef = useRef(null);
@@ -34,13 +40,16 @@ const PetForm = ({ selectedPet, onSaved, onCancel }) => {
     setBusy(true);
     try {
       const payload = { name: name.trim(), species, birthDate };
+      // Yeni fotoğraf seçildiyse gönderilir; kayıtlı fotoğraf kaldırıldıysa photo: "" ile silinir
+      if (newPhoto) payload.photoData = newPhoto.dataUrl;
+      else if (selectedPet?.photo && !currentPhoto) payload.photo = "";
       const { data } = selectedPet
         ? await API.put(`/pets/${selectedPet._id}`, payload)
         : await API.post("/pets", payload);
       onSaved(data, Boolean(selectedPet));
     } catch (err) {
       console.error(err);
-      setError("Kaydedilemedi. Bilgileri kontrol edip tekrar deneyin.");
+      setError(photoErrorMessage(err) || "Kaydedilemedi. Bilgileri kontrol edip tekrar deneyin.");
     } finally {
       setBusy(false);
     }
@@ -88,11 +97,25 @@ const PetForm = ({ selectedPet, onSaved, onCancel }) => {
           />
         </Field>
       </div>
+      <PhotoPicker
+        label="Fotoğrafı"
+        previewAlt={`${name.trim() || "Evcil dost"} fotoğrafı önizlemesi`}
+        currentUrl={currentPhoto}
+        newPhoto={newPhoto}
+        onSelect={setNewPhoto}
+        onRemove={() => {
+          setNewPhoto(null);
+          setCurrentPhoto("");
+        }}
+        onBusyChange={setPhotoBusy}
+        disabled={busy}
+        round
+      />
       <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy}>
           Vazgeç
         </button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        <button type="submit" className="btn btn-primary" disabled={busy || photoBusy}>
           {busy && <Spinner size={16} />}
           {selectedPet ? "Değişiklikleri kaydet" : "Evcil dostu ekle"}
         </button>

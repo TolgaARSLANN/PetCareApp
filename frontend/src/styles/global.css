@@ -572,6 +572,19 @@ button {
   object-fit: cover;
 }
 
+/* Evcil dost fotoğrafı: kare kırpılmış yuvarlak önizleme (kartlardaki görünüme yakın) */
+.photo-preview-round {
+  width: 160px;
+  height: 160px;
+  border-radius: var(--radius-full);
+}
+
+.photo-preview-round img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
 .photo-actions {
   display: flex;
   flex-wrap: wrap;

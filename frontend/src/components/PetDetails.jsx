@@ -18,7 +18,7 @@ import Alert from "./ui/Alert";
 import EmptyState from "./ui/EmptyState";
 import Field from "./ui/Field";
 import { PageLoader } from "./ui/Loading";
-import SpeciesIcon from "./ui/SpeciesIcon";
+import PetAvatar from "./ui/PetAvatar";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import {
   calendarDay,
@@ -126,9 +126,7 @@ const PetDetails = () => {
       </Link>
 
       <header className="card pet-hero">
-        <span className={`avatar avatar-lg avatar-${pet.species || "diğer"}`}>
-          <SpeciesIcon species={pet.species} size={40} />
-        </span>
+        <PetAvatar pet={pet} large />
         <div className="pet-hero-info">
           <h1 className="page-title">{pet.name}</h1>
           <p className="pet-hero-meta">

@@ -209,11 +209,12 @@ describe('blog cover photos', () => {
       .send({ ...post, imageData: dataUrl('image/jpeg', nearLimit) });
     expect(blogRes.status).toBe(201);
 
-    const petRes = await request(app)
-      .post('/api/pets')
+    // Fotoğraf taşımayan bir adres (ör. kilo kaydı) 100 KB'lık genel sınırda kalır
+    const weightRes = await request(app)
+      .post(`/api/pets/${newId()}/weight`)
       .set('Authorization', auth)
-      .send({ name: 'x'.repeat(200 * 1024) });
-    expect(petRes.status).toBe(413);
+      .send({ notes: 'x'.repeat(200 * 1024) });
+    expect(weightRes.status).toBe(413);
   });
 
   describe('editing', () => {

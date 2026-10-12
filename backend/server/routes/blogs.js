@@ -3,17 +3,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const Blog = require('../models/Blog');
-const Image = require('../models/Image');
-const config = require('../config');
-const { parseImageDataUrl, imageUrl, usedPhotoBytes, ImageError } = require('../services/images');
+const { parseImageDataUrl } = require('../services/images');
+const { photoJson, storePhoto, deletePhoto } = require('../services/photoStore');
 const authMiddleware = require('../middleware/authMiddleware');
 const { photoUploadLimiter } = require('../middleware/rateLimits');
-const { withUserLock } = require('../services/userLock');
-
-// Kapak fotoğrafı taşıyabilen gövde (base64, en fazla 2 MB) yalnızca oturum doğrulandıktan sonra okunur:
-// giriş yapmamış biri sunucuya büyük gövde ayrıştırtamasın. Uygulamanın genel ayrıştırıcısı bu iki
-// isteği atlar (app.js).
-const photoJson = express.json({ limit: '3mb' });
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -75,25 +68,14 @@ const sendBlogError = (res, err, logMessage) => {
 // adresleri değiştirilmedikçe kalır.
 const isNewImageAddress = (value, current) => typeof value === 'string' && value !== '' && value !== current;
 
-// Fotoğrafı saklar ve yazıya bağlar. Fotoğraf yalnızca yazı geçerliyse ve kullanıcının toplam fotoğraf
-// alanı yetiyorsa saklanır. replacingId: değiştirilen fotoğraf (silineceği için alana sayılmaz).
+// Fotoğrafı saklar ve yazıya bağlar. Fotoğraf yalnızca yazı geçerliyse saklanır.
 const attachImage = async (blog, imageData, ownerId, replacingId) => {
-  const { contentType, data } = parseImageDataUrl(imageData);
+  const parsed = parseImageDataUrl(imageData);
   await blog.validate();
-  // aggregate kimliği kendiliğinden dönüştürmez: metin kimlikle hiçbir fotoğraf eşleşmez, sınır işlemezdi
-  const owner = new mongoose.Types.ObjectId(String(ownerId));
-  // Sayma ve kaydetme aynı kullanıcı için sırayla yapılır: aynı anda gelen yüklemeler birbirinin
-  // kaydını görmeden alanı aşmasın
-  const image = await withUserLock(owner, async () => {
-    const used = await usedPhotoBytes(Image, owner, replacingId);
-    if (used + data.length > config.photoStorageMb * 1024 * 1024) {
-      throw new ImageError('Photo storage limit reached', 413);
-    }
-    return Image.create({ data, contentType, size: data.length, ownerId });
-  });
-  blog.image = imageUrl(image._id);
-  blog.imageId = image._id;
-  return image;
+  const photo = await storePhoto(parsed, ownerId, replacingId);
+  blog.image = photo.url;
+  blog.imageId = photo.id;
+  return photo;
 };
 
 // Yeni bir blog yazısı ekleme (giriş gerekli). imageData: tarayıcıda küçültülmüş fotoğraf (data URL)
@@ -109,7 +91,7 @@ router.post('/', authMiddleware, photoJson, photoUploadLimiter, async (req, res)
     res.status(201).json(blog);
   } catch (err) {
     // Yazı kaydedilemediyse fotoğraf sahipsiz kalmasın
-    if (savedImage) await Image.deleteOne({ _id: savedImage._id }).catch(() => {});
+    if (savedImage) await deletePhoto(savedImage.id);
     sendBlogError(res, err, 'Error creating blog:');
   }
 });
@@ -138,11 +120,11 @@ router.put('/:id', authMiddleware, photoJson, photoUploadLimiter, async (req, re
 
     // Artık kullanılmayan eski fotoğrafı sil
     if (previousImageId && String(previousImageId) !== String(blog.imageId)) {
-      await Image.deleteOne({ _id: previousImageId });
+      await deletePhoto(previousImageId);
     }
     res.json(blog);
   } catch (err) {
-    if (savedImage) await Image.deleteOne({ _id: savedImage._id }).catch(() => {});
+    if (savedImage) await deletePhoto(savedImage.id);
     sendBlogError(res, err, 'Error updating blog:');
   }
 });
@@ -153,7 +135,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (!isValidId(req.params.id)) return res.status(404).json({ error: 'Blog not found' });
     const deletedBlog = await Blog.findOneAndDelete({ _id: req.params.id, authorId: req.userId });
     if (!deletedBlog) return res.status(404).json({ error: 'Blog not found or unauthorized' });
-    if (deletedBlog.imageId) await Image.deleteOne({ _id: deletedBlog.imageId });
+    await deletePhoto(deletedBlog.imageId);
     res.json({ message: 'Blog deleted successfully' });
   } catch (err) {
     console.error('Error deleting blog:', err);

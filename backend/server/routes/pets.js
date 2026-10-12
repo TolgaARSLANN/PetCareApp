@@ -5,11 +5,15 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const Pet = require('../models/Pet');
 const authMiddleware = require('../middleware/authMiddleware');
+const { photoUploadLimiter } = require('../middleware/rateLimits');
 const { getRecommendations } = require('../services/recommendations');
+const { parseImageDataUrl } = require('../services/images');
+const { photoJson, storePhoto, deletePhoto } = require('../services/photoStore');
 
 // Hatalı veri (eksik zorunlu alan, sayı olmayan kilo, geçersiz tarih...) istemci hatasıdır: 400.
 // Yalnızca beklenmeyen hatalar 500 döner ve kaydedilir.
 const sendError = (res, error, logMessage) => {
+  if (error.name === 'ImageError') return res.status(error.status).json({ error: error.message });
   if (error.name === 'ValidationError' || error.name === 'CastError') {
     return res.status(400).json({ error: 'Invalid record data' });
   }
@@ -25,20 +29,34 @@ router.param('id', (req, res, next, id) => {
   next();
 });
 
-// 1. Yeni Pet Ekleme (POST)
-router.post('/', authMiddleware, async (req, res) => {
+// Fotoğraf yalnızca yüklenerek (photoData) atanır; istemci "photo" alanında yeni bir adres veremez
+// (başkasının fotoğrafına bağlanamasın). "photo": "" fotoğrafı kaldırır, aynı adres onu korur.
+const isNewPhotoAddress = (value, current) => typeof value === 'string' && value !== '' && value !== current;
+
+// 1. Yeni Pet Ekleme (POST). photoData: tarayıcıda küçültülmüş fotoğraf (data URL), isteğe bağlı
+router.post('/', authMiddleware, photoJson, photoUploadLimiter, async (req, res) => {
+  let stored = null;
   try {
-    const { name, species, birthDate, vaccines } = req.body;
+    const { name, species, birthDate, vaccines, photo, photoData } = req.body;
+    if (isNewPhotoAddress(photo, undefined)) return res.status(400).json({ error: 'Invalid photo' });
     const pet = new Pet({
       name,
       species,
       birthDate,
       vaccines: vaccines || [],
-      ownerId: req.userId // Giriş yapan kullanıcının ID'si
+      ownerId: req.userId, // Giriş yapan kullanıcının ID'si
     });
+    if (photoData) {
+      const parsed = parseImageDataUrl(photoData);
+      await pet.validate(); // fotoğrafı yalnızca evcil dost bilgileri geçerliyse sakla
+      stored = await storePhoto(parsed, req.userId);
+      pet.photo = stored.url;
+      pet.photoId = stored.id;
+    }
     await pet.save();
     res.status(201).json(pet);
   } catch (error) {
+    if (stored) await deletePhoto(stored.id); // kaydedilemediyse fotoğraf sahipsiz kalmasın
     sendError(res, error, 'Error adding new pet:');
   }
 });
@@ -64,23 +82,44 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// 4. Pet Güncelleme (PUT /:id)
-router.put('/:id', authMiddleware, async (req, res) => {
+// 4. Pet Güncelleme (PUT /:id). photoData yeni fotoğraf, photo: "" fotoğrafı kaldırır
+router.put('/:id', authMiddleware, photoJson, photoUploadLimiter, async (req, res) => {
+  let stored = null;
   try {
-    const { name, species, birthDate, vaccines } = req.body;
+    const { name, species, birthDate, vaccines, photo, photoData } = req.body;
+    const existing = await Pet.findOne({ _id: req.params.id, ownerId: req.userId }).select('photo photoId');
+    if (!existing) return res.status(404).json({ error: 'Pet not found or unauthorized' });
+    if (isNewPhotoAddress(photo, existing.photo)) return res.status(400).json({ error: 'Invalid photo' });
+
+    const update = { $set: { name, species, birthDate, vaccines } };
+    if (photoData) {
+      stored = await storePhoto(parseImageDataUrl(photoData), req.userId, existing.photoId);
+      update.$set.photo = stored.url;
+      update.$set.photoId = stored.id;
+    } else if (photo === '' && existing.photo) {
+      update.$unset = { photo: 1, photoId: 1 };
+    }
 
     // Yalnızca giriş yapan kullanıcının pet'i güncellenebilir
     const updatedPet = await Pet.findOneAndUpdate(
       { _id: req.params.id, ownerId: req.userId }, // Sahiplik kontrolü
-      { name, species, birthDate, vaccines },
+      update,
       // Güncellenmiş dokümanı döndür; model kuralları (ör. boş ad) güncellemede de uygulanır,
       // yoksa geçersiz bir ad kaydı bozar ve sonraki her kayıt eklemesi başarısız olur
       { new: true, runValidators: true }
     );
+    if (!updatedPet) {
+      if (stored) await deletePhoto(stored.id);
+      return res.status(404).json({ error: 'Pet not found or unauthorized' });
+    }
 
-    if (!updatedPet) return res.status(404).json({ error: 'Pet not found or unauthorized' });
+    // Artık kullanılmayan eski fotoğrafı sil
+    if (existing.photoId && String(existing.photoId) !== String(updatedPet.photoId)) {
+      await deletePhoto(existing.photoId);
+    }
     res.json(updatedPet);
   } catch (error) {
+    if (stored) await deletePhoto(stored.id);
     sendError(res, error, 'Error updating pet:');
   }
 });
@@ -91,12 +130,13 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // Yalnızca giriş yapan kullanıcının pet'i silinebilir
     const deletedPet = await Pet.findOneAndDelete({
       _id: req.params.id,
-      ownerId: req.userId // Sahiplik kontrolü
+      ownerId: req.userId, // Sahiplik kontrolü
     });
 
     if (!deletedPet) {
       return res.status(404).json({ error: 'Pet not found or unauthorized' });
     }
+    await deletePhoto(deletedPet.photoId); // fotoğrafı da silinir
 
     res.json({ message: 'Pet deleted successfully' });
   } catch (error) {
@@ -231,7 +271,6 @@ router.get('/:id/appointments', authMiddleware, async (req, res) => {
     sendError(res, error, 'Error fetching appointments:');
   }
 });
-
 
 // Aşı ekleme (POST /:id/vaccines)
 router.post('/:id/vaccines', authMiddleware, async (req, res) => {
