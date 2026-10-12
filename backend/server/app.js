@@ -23,10 +23,11 @@ app.use(helmet());
 
 // CORS: only the configured frontend origin may call the API, with cookies
 app.use(cors({ origin: config.clientOrigin, credentials: true }));
-// Blog yazıları kapak fotoğrafını da taşıyabilir (base64, en fazla 2 MB): sınır yalnızca orada geniş.
-// Gövdesi zaten okunmuş isteği sonraki genel ayrıştırıcı atlar.
-app.use('/api/blogs', express.json({ limit: '3mb' }));
-app.use(express.json({ limit: '100kb' }));
+// JSON gövdeler en fazla 100 KB. Blog yazma istekleri (kapak fotoğrafı taşıyabilir) burada atlanır;
+// onların gövdesi routes/blogs.js'te, oturum doğrulandıktan sonra 3 MB sınırla okunur.
+const smallJson = express.json({ limit: '100kb' });
+const isBlogWrite = (req) => req.path.startsWith('/api/blogs') && (req.method === 'POST' || req.method === 'PUT');
+app.use((req, res, next) => (isBlogWrite(req) ? next() : smallJson(req, res, next)));
 app.use(cookieParser());
 
 // Health check

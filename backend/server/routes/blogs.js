@@ -4,8 +4,15 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const Blog = require('../models/Blog');
 const Image = require('../models/Image');
-const { parseImageDataUrl, imageUrl } = require('../services/images');
+const config = require('../config');
+const { parseImageDataUrl, imageUrl, usedPhotoBytes, ImageError } = require('../services/images');
 const authMiddleware = require('../middleware/authMiddleware');
+const { photoUploadLimiter } = require('../middleware/rateLimits');
+
+// Kapak fotoğrafı taşıyabilen gövde (base64, en fazla 2 MB) yalnızca oturum doğrulandıktan sonra okunur:
+// giriş yapmamış biri sunucuya büyük gövde ayrıştırtamasın. Uygulamanın genel ayrıştırıcısı bu iki
+// isteği atlar (app.js).
+const photoJson = express.json({ limit: '3mb' });
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -65,10 +72,17 @@ const sendBlogError = (res, err, logMessage) => {
 // (başkasının fotoğrafını kendi yazısına bağlayıp silinmesine yol açamasın diye)
 const isUploadedImagePath = (value) => typeof value === 'string' && value.startsWith('/api/images/');
 
-// Fotoğrafı saklar ve yazıya bağlar. Fotoğraf yalnızca yazı geçerliyse saklanır.
-const attachImage = async (blog, imageData, ownerId) => {
+// Fotoğrafı saklar ve yazıya bağlar. Fotoğraf yalnızca yazı geçerliyse ve kullanıcının toplam fotoğraf
+// alanı yetiyorsa saklanır. replacingId: değiştirilen fotoğraf (silineceği için alana sayılmaz).
+const attachImage = async (blog, imageData, ownerId, replacingId) => {
   const { contentType, data } = parseImageDataUrl(imageData);
   await blog.validate();
+  // aggregate kimliği kendiliğinden dönüştürmez: metin kimlikle hiçbir fotoğraf eşleşmez, sınır işlemezdi
+  const owner = new mongoose.Types.ObjectId(String(ownerId));
+  const used = await usedPhotoBytes(Image, owner, replacingId);
+  if (used + data.length > config.photoStorageMb * 1024 * 1024) {
+    throw new ImageError('Photo storage limit reached', 413);
+  }
   const image = await Image.create({ data, contentType, size: data.length, ownerId });
   blog.image = imageUrl(image._id);
   blog.imageId = image._id;
@@ -76,7 +90,7 @@ const attachImage = async (blog, imageData, ownerId) => {
 };
 
 // Yeni bir blog yazısı ekleme (giriş gerekli). imageData: tarayıcıda küçültülmüş fotoğraf (data URL)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, photoJson, photoUploadLimiter, async (req, res) => {
   let savedImage = null;
   try {
     const { title, content, author, image, imageData } = req.body;
@@ -95,7 +109,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
 // Blog yazısını güncelleme (yalnızca yazarı).
 // image aynı gelirse fotoğraf korunur, boş gelirse kaldırılır; imageData gelirse fotoğraf değişir.
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, photoJson, photoUploadLimiter, async (req, res) => {
   let savedImage = null;
   try {
     if (!isValidId(req.params.id)) return res.status(404).json({ error: 'Blog not found' });
@@ -110,7 +124,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const previousImageId = blog.imageId;
     blog.set({ title, content, author });
     if (imageData) {
-      savedImage = await attachImage(blog, imageData, req.userId);
+      savedImage = await attachImage(blog, imageData, req.userId, previousImageId);
     } else if (image !== undefined && image !== blog.image) {
       blog.image = image || undefined; // başka bir https adresi ya da kaldırma ("" gelirse)
       blog.imageId = undefined;

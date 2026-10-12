@@ -48,24 +48,44 @@ async function getUserId(req, res) {
   return decoded.userId;
 }
 
+// Bodies larger than this are never accepted anywhere (the largest is a blog post with a photo)
+const MAX_DISCARDED_BODY_BYTES = 3 * 1024 * 1024;
+
+// Rejects the request. A body the route has not read yet (a blog post with a photo is parsed only
+// after this check) is received and thrown away without parsing, then the answer is sent: answering
+// first would make Node close the connection and the client would see a reset instead of the 401
+// (so the app could not tell that the session ended). Oversized bodies cut the connection.
+function reject(req, res, status, message) {
+  const send = () => res.status(status).json({ message });
+  if (req.complete || req.readableEnded) return send();
+  let received = 0;
+  req.on('data', (chunk) => {
+    received += chunk.length;
+    if (received > MAX_DISCARDED_BODY_BYTES) req.destroy();
+  });
+  req.once('end', send);
+  req.resume();
+  return undefined;
+}
+
 async function authMiddleware(req, res, next) {
   const token = readToken(req);
-  if (!token) return res.status(401).json({ message: 'No token' });
+  if (!token) return reject(req, res, 401, 'No token');
 
   let decoded;
   try {
     decoded = jwt.verify(token, config.jwtSecret);
   } catch {
-    return res.status(401).json({ message: 'Invalid token' });
+    return reject(req, res, 401, 'Invalid token');
   }
 
   try {
     if (!(await isSessionCurrent(decoded.userId, decoded.tv))) {
-      return res.status(401).json({ message: 'Session ended' });
+      return reject(req, res, 401, 'Session ended');
     }
   } catch (error) {
     console.error('Error checking session:', error);
-    return res.status(500).json({ message: 'Server error' });
+    return reject(req, res, 500, 'Server error');
   }
   req.userId = decoded.userId;
   refreshIfAging(req, res, decoded);

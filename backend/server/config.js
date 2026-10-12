@@ -22,6 +22,11 @@ const config = {
   // Number of reverse proxies in front of the API (so rate limits see the real client IP).
   // 0 when the API is reached directly, e.g. 1 behind Render / Railway / a Vercel rewrite.
   trustProxy: Number(process.env.TRUST_PROXY) || 0,
+
+  // Blog cover photos per user: uploads per hour, and total storage (MB) for all of a user's photos.
+  // Without them one account could fill the database (each upload is up to 2 MB).
+  photoUploadsPerHour: Number(process.env.PHOTO_UPLOADS_PER_HOUR) || 20,
+  photoStorageMb: Number(process.env.PHOTO_STORAGE_MB) || 25,
 };
 
 if (!config.jwtSecret) {

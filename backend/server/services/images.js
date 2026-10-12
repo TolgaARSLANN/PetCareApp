@@ -38,4 +38,12 @@ function parseImageDataUrl(value) {
 
 const imageUrl = (id) => `/api/images/${id}`;
 
-module.exports = { parseImageDataUrl, imageUrl, ImageError, MAX_IMAGE_BYTES };
+// Total bytes of a user's stored photos, optionally leaving out one (the photo being replaced)
+async function usedPhotoBytes(Image, ownerId, exceptId) {
+  const match = { ownerId };
+  if (exceptId) match._id = { $ne: exceptId };
+  const [row] = await Image.aggregate([{ $match: match }, { $group: { _id: null, total: { $sum: '$size' } } }]);
+  return row?.total || 0;
+}
+
+module.exports = { parseImageDataUrl, imageUrl, usedPhotoBytes, ImageError, MAX_IMAGE_BYTES };

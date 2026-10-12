@@ -39,7 +39,7 @@
       "<rootDir>/tests/setup.js"
     ],
     "setupFilesAfterEnv": [
-      "<rootDir>/tests/setupSession.js"
+      "<rootDir>/tests/setupDefaults.js"
     ],
     "testMatch": [
       "<rootDir>/tests/**/*.test.js"
