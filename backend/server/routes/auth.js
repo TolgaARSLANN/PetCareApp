@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const Pet = require('../models/Pet');
 const Blog = require('../models/Blog');
+const Image = require('../models/Image');
 const authMiddleware = require('../middleware/authMiddleware');
 const { getUserId } = authMiddleware;
 const { authLimiter } = require('../middleware/rateLimits');
@@ -132,7 +133,7 @@ router.get('/account', authMiddleware, async (req, res) => {
 
 // Verilerimi indir (KVKK/GDPR veri taşınabilirliği): hesabın tüm verileri tek bir JSON dosyası olarak.
 // Parola özeti, oturum sürümü ve iç alanlar (__v, ownerId, authorId) dosyaya girmez.
-const withoutInternals = ({ __v, ownerId, authorId, ...rest }) => rest;
+const withoutInternals = ({ __v, ownerId, authorId, imageId, ...rest }) => rest;
 
 router.get('/account/export', authMiddleware, async (req, res) => {
   try {
@@ -193,7 +194,7 @@ router.put('/password', authLimiter, authMiddleware, async (req, res) => {
   }
 });
 
-// Hesap silme: parola onayıyla kullanıcı, tüm evcil dostları (ve kayıtları) ve blog yazıları
+// Hesap silme: parola onayıyla kullanıcı, tüm evcil dostları (ve kayıtları), blog yazıları ve fotoğrafları
 // kalıcı olarak silinir; oturum çerezi temizlenir.
 router.delete('/account', authLimiter, authMiddleware, async (req, res) => {
   try {
@@ -210,6 +211,7 @@ router.delete('/account', authLimiter, authMiddleware, async (req, res) => {
     const [pets, blogs] = await Promise.all([
       Pet.deleteMany({ ownerId: user._id }),
       Blog.deleteMany({ authorId: user._id }),
+      Image.deleteMany({ ownerId: user._id }),
     ]);
     await User.deleteOne({ _id: user._id });
 

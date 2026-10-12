@@ -5,6 +5,7 @@ const app = require('../app');
 const User = require('../models/User');
 const Pet = require('../models/Pet');
 const Blog = require('../models/Blog');
+const Image = require('../models/Image');
 const { newId, tokenFor } = require('./helpers');
 
 afterEach(() => jest.restoreAllMocks());
@@ -96,6 +97,7 @@ describe('DELETE /api/auth/account', () => {
     await mockUser(userId);
     const pets = jest.spyOn(Pet, 'deleteMany').mockResolvedValue({ deletedCount: 3 });
     const blogs = jest.spyOn(Blog, 'deleteMany').mockResolvedValue({ deletedCount: 2 });
+    const images = jest.spyOn(Image, 'deleteMany').mockResolvedValue({ deletedCount: 1 });
     const users = jest.spyOn(User, 'deleteOne').mockResolvedValue({ deletedCount: 1 });
 
     const res = await remove(userId, { password: 'correct' });
@@ -104,6 +106,7 @@ describe('DELETE /api/auth/account', () => {
     expect(res.body).toEqual({ deletedPets: 3, deletedBlogs: 2 });
     expect(String(pets.mock.calls[0][0].ownerId)).toBe(String(userId));
     expect(String(blogs.mock.calls[0][0].authorId)).toBe(String(userId));
+    expect(String(images.mock.calls[0][0].ownerId)).toBe(String(userId)); // yazıların fotoğrafları da
     expect(String(users.mock.calls[0][0]._id)).toBe(String(userId));
     const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
     expect(cookie).toMatch(/Expires=Thu, 01 Jan 1970/);

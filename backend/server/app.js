@@ -11,6 +11,7 @@ const { apiLimiter } = require('./middleware/rateLimits');
 const authRoutes = require('./routes/auth');
 const petRoutes = require('./routes/pets');
 const blogRoutes = require('./routes/blogs');
+const imageRoutes = require('./routes/images');
 
 const app = express();
 
@@ -22,6 +23,9 @@ app.use(helmet());
 
 // CORS: only the configured frontend origin may call the API, with cookies
 app.use(cors({ origin: config.clientOrigin, credentials: true }));
+// Blog yazıları kapak fotoğrafını da taşıyabilir (base64, en fazla 2 MB): sınır yalnızca orada geniş.
+// Gövdesi zaten okunmuş isteği sonraki genel ayrıştırıcı atlar.
+app.use('/api/blogs', express.json({ limit: '3mb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 
@@ -30,6 +34,8 @@ app.get('/', (req, res) => {
   res.send('Pet Care API running...');
 });
 
+// Fotoğraflar genel istek sınırının dışında: bir blog sayfası tek seferde 9 fotoğraf ister
+app.use('/api/images', imageRoutes);
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
