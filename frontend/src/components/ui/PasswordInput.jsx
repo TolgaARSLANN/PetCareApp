@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { forwardRef, useState } from "react";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 
-const PasswordInput = ({ id, value, onChange, autoComplete, minLength, required, ...rest }) => {
+// ref iç <input>'a iletilir (ör. formun hatalı alana odaklanabilmesi için)
+const PasswordInput = forwardRef(({ id, value, onChange, autoComplete, minLength, required, ...rest }, ref) => {
   const [visible, setVisible] = useState(false);
   return (
     <div className="input-with-action">
       <input
+        ref={ref}
         id={id}
         type={visible ? "text" : "password"}
         className="input"
@@ -27,6 +29,8 @@ const PasswordInput = ({ id, value, onChange, autoComplete, minLength, required,
       </button>
     </div>
   );
-};
+});
+
+PasswordInput.displayName = "PasswordInput";
 
 export default PasswordInput;

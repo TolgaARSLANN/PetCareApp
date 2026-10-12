@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../services/api";
 import { useAuth } from "../context/useAuth";
@@ -24,12 +24,24 @@ const Register = () => {
   useDocumentTitle("Üye ol");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [repeat, setRepeat] = useState("");
+  // Uyarı, kullanıcı tekrar alanından çıkınca ya da formu gönderince gösterilir (yazarken değil)
+  const [touchedRepeat, setTouchedRepeat] = useState(false);
+  const repeatRef = useRef(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const { login } = useAuth();
 
+  const mismatch = touchedRepeat && repeat !== "" && repeat !== password;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouchedRepeat(true);
+    // Henüz "Şifremi unuttum" yok: yanlış yazılan bir parola hesabın kaybı demek
+    if (repeat !== password) {
+      repeatRef.current?.focus();
+      return;
+    }
     if (isPasswordTooLong(password)) {
       setError(PASSWORD_TOO_LONG);
       return;
@@ -45,7 +57,9 @@ const Register = () => {
       const message = err.response?.data?.message;
       setError(
         ERROR_TRANSLATIONS[message] ||
-          (err.response ? "Kayıt tamamlanamadı. Lütfen tekrar deneyin." : "Sunucuya ulaşılamadı. Lütfen tekrar deneyin.")
+          (err.response
+            ? "Kayıt tamamlanamadı. Lütfen tekrar deneyin."
+            : "Sunucuya ulaşılamadı. Lütfen tekrar deneyin.")
       );
       setBusy(false);
     }
@@ -81,6 +95,24 @@ const Register = () => {
             minLength={6}
           />
         </Field>
+        <div className="field">
+          <Field id="password-repeat" label="Parola (tekrar)" required>
+            <PasswordInput
+              ref={repeatRef}
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value)}
+              onBlur={() => setTouchedRepeat(true)}
+              autoComplete="new-password"
+              aria-invalid={mismatch || undefined}
+              aria-describedby={mismatch ? "password-repeat-error" : undefined}
+            />
+          </Field>
+          {mismatch && (
+            <p id="password-repeat-error" className="field-error" role="alert">
+              Parolalar eşleşmiyor.
+            </p>
+          )}
+        </div>
         <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={busy}>
           {busy && <Spinner size={18} />}
           {busy ? "Hesap oluşturuluyor…" : "Üye ol"}
