@@ -13,6 +13,10 @@ vi.mock("../services/api", () => ({ default: { get: vi.fn(), post: vi.fn() } }))
 
 const WhoAmI = () => <p>Evcil dostlar: {useAuth().user?.id}</p>;
 
+// Etiket metninde zorunlu alan işareti de var ("Parola *")
+const passwordInput = () => screen.getByLabelText(/^Parola\s*\*?$/, { selector: "input" });
+const repeatInput = () => screen.getByLabelText(/Parola \(tekrar\)/, { selector: "input" });
+
 const renderRegister = async () => {
   render(
     <AuthProvider>
@@ -36,7 +40,9 @@ const renderRegister = async () => {
 
 describe("Register", () => {
   beforeEach(() => {
-    vi.mocked(API.get).mockReset().mockResolvedValue({ data: { userId: null } });
+    vi.mocked(API.get)
+      .mockReset()
+      .mockResolvedValue({ data: { userId: null } });
     vi.mocked(API.post).mockReset();
   });
 
@@ -46,7 +52,8 @@ describe("Register", () => {
     await renderRegister();
 
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
-    await user.type(screen.getByLabelText(/Parola/, { selector: "input" }), "secret1");
+    await user.type(passwordInput(), "secret1");
+    await user.type(repeatInput(), "secret1");
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
     expect(API.post).toHaveBeenCalledWith("/auth/register", { email: "a@b.com", password: "secret1" });
@@ -57,10 +64,43 @@ describe("Register", () => {
     const user = userEvent.setup();
     await renderRegister();
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
-    await user.type(screen.getByLabelText(/Parola/, { selector: "input" }), "ğ".repeat(37));
+    await user.type(passwordInput(), "ğ".repeat(37));
+    await user.type(repeatInput(), "ğ".repeat(37));
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
     expect(screen.getByText(/Parola çok uzun/)).toBeInTheDocument();
     expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("passwords that do not match are explained at the field and nothing is sent", async () => {
+    const user = userEvent.setup();
+    await renderRegister();
+    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
+    await user.type(passwordInput(), "secret1");
+    await user.type(repeatInput(), "secret2");
+    await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
+
+    expect(screen.getByText("Parolalar eşleşmiyor.")).toBeInTheDocument();
+    expect(repeatInput()).toHaveAttribute("aria-invalid", "true");
+    expect(repeatInput()).toHaveFocus();
+    expect(API.post).not.toHaveBeenCalled();
+
+    // Düzeltince uyarı kalkar ve kayıt gönderilir
+    vi.mocked(API.post).mockResolvedValue({ data: { userId: "u7" } });
+    await user.clear(repeatInput());
+    await user.type(repeatInput(), "secret1");
+    expect(screen.queryByText("Parolalar eşleşmiyor.")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
+    expect(API.post).toHaveBeenCalledWith("/auth/register", { email: "a@b.com", password: "secret1" });
+  });
+
+  test("the warning waits until the user leaves the repeat field", async () => {
+    const user = userEvent.setup();
+    await renderRegister();
+    await user.type(passwordInput(), "secret1");
+    await user.type(repeatInput(), "sec");
+    expect(screen.queryByText("Parolalar eşleşmiyor.")).not.toBeInTheDocument(); // yazarken uyarma
+    await user.tab();
+    expect(screen.getByText("Parolalar eşleşmiyor.")).toBeInTheDocument();
   });
 });
