@@ -13,8 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import { useAuth } from "../context/useAuth";
-import heroLarge from "../assets/hero-pets.jpg";
-import heroSmall from "../assets/hero-pets-sm.jpg";
+import HeroPreview from "./HeroPreview";
 
 const FEATURES = [
   {
@@ -94,17 +93,7 @@ const Home = () => {
               </Link>
             </div>
           </div>
-          <div className="hero-media">
-            <img
-              src={heroLarge}
-              srcSet={`${heroSmall} 800w, ${heroLarge} 1400w`}
-              sizes="(max-width: 900px) 100vw, 560px"
-              width="1400"
-              height="700"
-              alt="Pembe bir fon önünde yan yana oturan iki kedi, bir kaniş ve bir corgi"
-              fetchpriority="high"
-            />
-          </div>
+          <HeroPreview />
         </div>
       </section>
 

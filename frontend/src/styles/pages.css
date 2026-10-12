@@ -58,19 +58,191 @@
   margin-top: var(--space-2);
 }
 
-.hero-media img {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 2 / 1;
-  object-fit: cover;
+/* ---------- Ürün önizlemesi (HeroPreview) ----------
+   Uygulamanın kendi kartlarından bir kompozisyon; renkler tasarım değişkenlerinden gelir. */
+.hero-preview {
+  position: relative;
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-4);
+}
+
+.hero-preview-backdrop {
+  position: absolute;
+  inset: 0;
   border-radius: var(--radius-xl);
+  background:
+    radial-gradient(70% 60% at 85% 15%, var(--hero-glow-primary) 0%, transparent 70%),
+    radial-gradient(60% 50% at 10% 90%, var(--hero-glow-accent) 0%, transparent 70%),
+    linear-gradient(160deg, var(--color-primary-tint) 0%, var(--color-surface-muted) 100%);
+  border: 1px solid var(--color-border);
+}
+
+.hp-card {
+  position: relative;
   box-shadow: var(--shadow-lg);
 }
 
-@media (min-width: 900px) {
-  .hero-media img {
-    aspect-ratio: 4 / 3.4;
-    object-position: 45% center;
+.hp-muted {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.hp-main {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.hp-pet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hp-pet .hp-muted {
+  white-space: nowrap;
+}
+
+.hp-pet-name {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+}
+
+.hp-pet-badge {
+  margin-left: auto;
+}
+
+.hp-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.hp-stat {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.hp-stat strong {
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.hp-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-primary);
+}
+
+.hp-chart {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.hp-chart svg {
+  width: 100%;
+  height: 64px;
+  overflow: visible;
+}
+
+.hp-chart-area {
+  fill: var(--color-primary-tint);
+}
+
+.hp-chart-line {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.hp-chart-dot {
+  fill: var(--color-surface);
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.hp-float {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.hp-float-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+}
+
+.hp-reminder .badge {
+  margin-left: auto;
+}
+
+.hp-mini-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+/* Dar ekranda önizleme kısa ve düzenli kalsın: randevu kartı ve hatırlatmanın rozeti gizlenir
+   ("5 gün sonra" aynı bilgiyi verir); evcil dost rozeti adın altına, aynı hizaya iner */
+@media (max-width: 599px) {
+  .hp-appointment,
+  .hp-reminder .badge {
+    display: none;
+  }
+
+  .hp-pet-badge {
+    margin-left: calc(56px + var(--space-3));
+  }
+}
+
+/* Geniş ekranda küçük kartlar ana kartın kenarlarına taşar ve hafifçe süzülür */
+@media (min-width: 600px) {
+  .hero-preview {
+    padding: var(--space-16) var(--space-10) var(--space-20);
+  }
+
+  .hp-main {
+    max-width: 420px;
+    margin-inline: auto;
+  }
+
+  .hp-float {
+    position: absolute;
+    animation: hp-float 6s ease-in-out infinite;
+  }
+
+  .hp-reminder {
+    left: 0;
+    bottom: var(--space-6);
+    max-width: 340px;
+  }
+
+  .hp-appointment {
+    right: 0;
+    top: var(--space-4);
+    animation-delay: -3s;
+  }
+}
+
+@keyframes hp-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
   }
 }
 
