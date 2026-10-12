@@ -14,6 +14,10 @@ const IMAGE_ERRORS = {
   "Image is too large": "Fotoğraf çok büyük. Lütfen başka bir fotoğraf deneyin.",
   "Only JPEG, PNG and WebP images are accepted": "Yalnızca JPEG, PNG ve WebP fotoğraflar kabul edilir.",
   "Image content does not match its type": "Bu dosya bir fotoğraf gibi görünmüyor.",
+  "Too many photo uploads, please try again later":
+    "Son bir saatte çok fazla fotoğraf yüklediniz. Lütfen biraz sonra tekrar deneyin ya da yazıyı fotoğrafsız yayınlayın.",
+  "Photo storage limit reached":
+    "Fotoğraf alanınız doldu (en fazla 25 MB). Eski yazılarınızdaki fotoğrafları kaldırarak yer açabilirsiniz.",
 };
 
 // Yeni yazı ve düzenleme için ortak form. Kaydetme işini onSubmit yapar; hata fırlatırsa mesaj gösterilir.

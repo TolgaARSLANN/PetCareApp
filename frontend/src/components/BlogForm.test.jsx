@@ -118,6 +118,18 @@ describe("BlogForm cover photo", () => {
     expect(await screen.findByText(/Fotoğraf çok büyük/)).toBeInTheDocument();
   });
 
+  test.each([
+    [429, "Too many photo uploads, please try again later", /Son bir saatte çok fazla fotoğraf/],
+    [413, "Photo storage limit reached", /Fotoğraf alanınız doldu/],
+  ])("the %s upload limit is explained in Turkish", async (status, error, text) => {
+    const user = userEvent.setup();
+    renderForm(vi.fn().mockRejectedValue({ response: { status, data: { error } } }));
+    await fill(user);
+    await choosePhoto(user);
+    await user.click(screen.getByRole("button", { name: "Yayınla" }));
+    expect(await screen.findByText(text)).toBeInTheDocument();
+  });
+
   test("choosing a photo counts as an unsaved change", async () => {
     const user = userEvent.setup();
     renderForm();

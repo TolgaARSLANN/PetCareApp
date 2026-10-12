@@ -228,3 +228,99 @@ describe('GET /api/images/:id', () => {
     expect((await request(app).get('/api/images/not-an-id')).status).toBe(404);
   });
 });
+
+describe('abuse limits', () => {
+  const mockStoring = () => {
+    jest.spyOn(Image, 'create').mockImplementation(async (doc) => ({ _id: newId(), ...doc }));
+    jest.spyOn(Blog.prototype, 'save').mockImplementation(async function save() {
+      await this.validate();
+      return this;
+    });
+  };
+  const post = { title: 'Başlık', content: 'İçerik', author: 'Tolga' };
+
+  test('a large body from someone who is not logged in is refused before it is read', async () => {
+    const big = `{"title":"${'a'.repeat(2.9 * 1024 * 1024)}"`; // bozuk JSON: okunsaydı 400 olurdu
+    const res = await request(app).post('/api/blogs').set('Content-Type', 'application/json').send(big);
+    expect(res.status).toBe(401);
+  });
+
+  test('photo uploads per user are limited per hour; posts without a photo are not', async () => {
+    mockStoring();
+    const auth = `Bearer ${tokenFor(newId())}`;
+    const upload = () =>
+      request(app)
+        .post('/api/blogs')
+        .set('Authorization', auth)
+        .send({ ...post, imageData: dataUrl('image/jpeg', JPEG) });
+
+    for (let i = 0; i < 20; i += 1) expect((await upload()).status).toBe(201);
+    const blocked = await upload();
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error).toBe('Too many photo uploads, please try again later');
+
+    const textOnly = await request(app).post('/api/blogs').set('Authorization', auth).send(post);
+    expect(textOnly.status).toBe(201);
+
+    // Başka bir kullanıcı etkilenmez
+    const other = await request(app)
+      .post('/api/blogs')
+      .set('Authorization', `Bearer ${tokenFor(newId())}`)
+      .send({ ...post, imageData: dataUrl('image/jpeg', JPEG) });
+    expect(other.status).toBe(201);
+  });
+
+  test('refused uploads do not use up the hourly allowance', async () => {
+    mockStoring();
+    const auth = `Bearer ${tokenFor(newId())}`;
+    for (let i = 0; i < 25; i += 1) {
+      const bad = await request(app)
+        .post('/api/blogs')
+        .set('Authorization', auth)
+        .send({ ...post, imageData: dataUrl('image/png', GIF) });
+      expect(bad.status).toBe(400);
+    }
+    const ok = await request(app)
+      .post('/api/blogs')
+      .set('Authorization', auth)
+      .send({ ...post, imageData: dataUrl('image/jpeg', JPEG) });
+    expect(ok.status).toBe(201);
+  });
+
+  test("a user's photos together cannot exceed 25 MB", async () => {
+    mockStoring();
+    const userId = newId();
+    const aggregate = jest.spyOn(Image, 'aggregate').mockResolvedValue([{ _id: null, total: 25 * 1024 * 1024 - 10 }]);
+    const res = await request(app)
+      .post('/api/blogs')
+      .set('Authorization', `Bearer ${tokenFor(userId)}`)
+      .send({ ...post, imageData: dataUrl('image/jpeg', JPEG) });
+
+    expect(res.status).toBe(413);
+    expect(res.body.error).toBe('Photo storage limit reached');
+    expect(Image.create).not.toHaveBeenCalled();
+    // Kimlik ObjectId olarak eşleştirilir (metin kimlik hiçbir fotoğrafla eşleşmez, sınır işlemezdi)
+    const owner = aggregate.mock.calls[0][0][0].$match.ownerId;
+    expect(owner).toBeInstanceOf(require('mongoose').Types.ObjectId);
+    expect(String(owner)).toBe(String(userId));
+  });
+
+  test('replacing a photo does not count the photo being replaced', async () => {
+    const userId = newId();
+    const oldImageId = newId();
+    const blog = new Blog({ ...post, authorId: userId, image: `/api/images/${oldImageId}`, imageId: oldImageId });
+    jest.spyOn(blog, 'save').mockResolvedValue(blog);
+    jest.spyOn(Blog, 'findOne').mockResolvedValue(blog);
+    jest.spyOn(Image, 'create').mockImplementation(async (doc) => ({ _id: newId(), ...doc }));
+    jest.spyOn(Image, 'deleteOne').mockResolvedValue({});
+    const aggregate = jest.spyOn(Image, 'aggregate').mockResolvedValue([]);
+
+    const res = await request(app)
+      .put(`/api/blogs/${newId()}`)
+      .set('Authorization', `Bearer ${tokenFor(userId)}`)
+      .send({ ...post, image: blog.image, imageData: dataUrl('image/png', PNG) });
+
+    expect(res.status).toBe(200);
+    expect(String(aggregate.mock.calls[0][0][0].$match._id.$ne)).toBe(String(oldImageId));
+  });
+});
