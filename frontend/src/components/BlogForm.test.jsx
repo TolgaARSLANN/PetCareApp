@@ -1,26 +1,35 @@
 import React from "react";
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, useNavigate } from "react-router-dom";
 import BlogForm from "./BlogForm";
+import { prepareImage, ImageProcessingError } from "../utils/image";
 import { renderWithRouter } from "../test/renderWithRouter";
 
-const fill = async (user, image) => {
+// Tarayıcıdaki küçültme jsdom'da çalışmaz; sonucu taklit edilir (utils/image.test.js ayrıca sınar)
+vi.mock("../utils/image", async (importOriginal) => ({ ...(await importOriginal()), prepareImage: vi.fn() }));
+
+const SMALL_PHOTO = { dataUrl: "data:image/webp;base64,UklGRg==", width: 1600, height: 1200, size: 180000 };
+
+const fill = async (user) => {
   await user.type(screen.getByLabelText(/Başlık/), "Başlık");
   await user.type(screen.getByLabelText(/İçerik/), "İçerik");
   await user.type(screen.getByLabelText(/Yazar adı/), "Ayşe");
-  if (image) await user.type(screen.getByLabelText(/Kapak görseli/), image);
 };
 
+const choosePhoto = (user, name = "kedi.jpg") =>
+  user.upload(screen.getByLabelText(/Kapak fotoğrafı/), new File(["x"], name, { type: "image/jpeg" }));
+
 // Formun yanında başka sayfaya giden bir bağlantı; kaydedince yazı sayfasına gider (BlogEditForm gibi)
-const Page = ({ onSubmit }) => {
+const Page = ({ onSubmit, initialValues }) => {
   const navigate = useNavigate();
   return (
     <>
       <Link to="/blogs">Tüm yazılar</Link>
       <BlogForm
         submitLabel="Yayınla"
+        initialValues={initialValues}
         onSubmit={async (values) => {
           await onSubmit(values);
           navigate("/blogs/b1");
@@ -30,33 +39,91 @@ const Page = ({ onSubmit }) => {
   );
 };
 
-const renderForm = (onSubmit = vi.fn().mockResolvedValue()) =>
+const renderForm = (onSubmit = vi.fn().mockResolvedValue(), initialValues) =>
   renderWithRouter([
-    { path: "/new", element: <Page onSubmit={onSubmit} /> },
+    { path: "/new", element: <Page onSubmit={onSubmit} initialValues={initialValues} /> },
     { path: "/blogs", element: <p>Yazı listesi</p> },
     { path: "/blogs/b1", element: <p>Yazı sayfası</p> },
   ]);
 
-describe("BlogForm cover image", () => {
-  test("a non-https address is explained and not sent", async () => {
-    const user = userEvent.setup();
-    const onSubmit = vi.fn();
-    renderForm(onSubmit);
-    await fill(user, "http://example.com/kedi.jpg");
-    await user.click(screen.getByRole("button", { name: "Yayınla" }));
-
-    expect(screen.getByText("Kapak görseli https:// ile başlayan bir adres olmalı.")).toBeInTheDocument();
-    expect(onSubmit).not.toHaveBeenCalled();
+describe("BlogForm cover photo", () => {
+  beforeEach(() => {
+    vi.mocked(prepareImage).mockReset().mockResolvedValue(SMALL_PHOTO);
   });
 
-  test("an https address is sent", async () => {
+  test("a chosen photo is prepared, previewed and sent with the post", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue();
     renderForm(onSubmit);
-    await fill(user, "https://example.com/kedi.jpg");
+    await fill(user);
+    await choosePhoto(user);
+
+    expect(prepareImage).toHaveBeenCalledWith(expect.objectContaining({ name: "kedi.jpg" }));
+    expect(screen.getByAltText("Kapak fotoğrafı önizlemesi")).toHaveAttribute("src", SMALL_PHOTO.dataUrl);
+    expect(screen.getByText("Fotoğrafı değiştir")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Yayınla" }));
+    expect(onSubmit).toHaveBeenCalledWith({
+      title: "Başlık",
+      content: "İçerik",
+      author: "Ayşe",
+      image: "",
+      imageData: SMALL_PHOTO.dataUrl,
+    });
+  });
+
+  test("without a photo nothing extra is sent", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue();
+    renderForm(onSubmit);
+    await fill(user);
+    await user.click(screen.getByRole("button", { name: "Yayınla" }));
+    expect(onSubmit).toHaveBeenCalledWith({ title: "Başlık", content: "İçerik", author: "Ayşe", image: "" });
+  });
+
+  test("an existing photo is kept unless removed", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue();
+    const existing = { title: "Başlık", content: "İçerik", author: "Ayşe", image: "/api/images/abc" };
+    renderForm(onSubmit, existing);
+
+    expect(screen.getByAltText("Kapak fotoğrafı önizlemesi")).toHaveAttribute("src", "/api/images/abc");
+    await user.click(screen.getByRole("button", { name: "Kaldır" }));
+    expect(screen.queryByAltText("Kapak fotoğrafı önizlemesi")).not.toBeInTheDocument();
+    expect(screen.getByText("Fotoğraf seç")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Yayınla" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ image: "" }));
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty("imageData");
+  });
+
+  test("a file that cannot be used is explained at the field", async () => {
+    const user = userEvent.setup();
+    vi.mocked(prepareImage).mockRejectedValue(new ImageProcessingError("Bu fotoğraf açılamadı."));
+    renderForm();
+    await choosePhoto(user, "bozuk.jpg");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Bu fotoğraf açılamadı.");
+    expect(screen.queryByAltText("Kapak fotoğrafı önizlemesi")).not.toBeInTheDocument();
+  });
+
+  test("a photo refused by the server is explained in Turkish", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockRejectedValue({ response: { status: 413, data: { error: "Image is too large" } } });
+    renderForm(onSubmit);
+    await fill(user);
+    await choosePhoto(user);
     await user.click(screen.getByRole("button", { name: "Yayınla" }));
 
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ image: "https://example.com/kedi.jpg" }));
+    expect(await screen.findByText(/Fotoğraf çok büyük/)).toBeInTheDocument();
+  });
+
+  test("choosing a photo counts as an unsaved change", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await choosePhoto(user);
+    await user.click(screen.getByRole("link", { name: "Tüm yazılar" }));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 });
 

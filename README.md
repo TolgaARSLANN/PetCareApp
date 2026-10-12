@@ -35,7 +35,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 | 📅 **Appointments** | Keep a list of vet appointments with date, time, reason and location; an "Upcoming" panel on the pets page lists every pet's upcoming appointments and due vaccine boosters, overdue first |
 | 🚑 **Emergency Contacts** | Store a vet or trusted person to call in an emergency |
 | 🎯 **Recommendations** | Care suggestions based on species, weight trend (kg), vaccine boosters and existing records |
-| 📖 **Blog** | Anyone can read posts, 9 per page with shareable page links (`/blogs?page=2`); logged-in users can write posts and edit or delete their own |
+| 📖 **Blog** | Anyone can read posts, 9 per page with shareable page links (`/blogs?page=2`); logged-in users can write posts with a cover photo from their device and edit or delete their own |
 
 ---
 
@@ -64,8 +64,8 @@ PetCareApp/
 │       │   ├── authCookie.js     # Session cookie settings and token issuing
 │       │   ├── authMiddleware.js # Checks the session (token + session version), sliding renewal
 │       │   └── rateLimits.js     # Brute-force and general request limits
-│       ├── models/               # Mongoose schemas with validation: User, Pet, Blog
-│       ├── routes/               # auth.js, pets.js, blogs.js
+│       ├── models/               # Mongoose schemas with validation: User, Pet, Blog, Image
+│       ├── routes/               # auth.js, pets.js, blogs.js, images.js
 │       ├── services/             # Recommendation logic
 │       └── tests/                # Jest + Supertest API tests (run in America/Los_Angeles, see globalSetup.js)
 │
@@ -205,7 +205,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 - **Sliding session:** once half of the token's lifetime has passed, the next request gets a fresh cookie, so an active user is not logged out mid-task. An idle session still expires after `JWT_EXPIRES_IN`, and no session lasts more than `SESSION_MAX_DAYS` after login.
 - **Session revocation:** every token carries the account's session version, checked on each request. Changing the password or choosing "sign out of all devices" bumps the version, so stolen or forgotten sessions stop working immediately (tokens of deleted accounts are rejected too).
 - **Same-site API:** because of `SameSite=Strict`, the frontend must reach the API on its own address under `/api`. In development the Vite proxy does this; when deploying, add a rewrite on the frontend host (for example a Vercel rewrite of `/api/:path*` to the backend URL) and set `TRUST_PROXY=1` on the backend.
-- **Input validation:** the API enforces the same rules as the forms (required fields, trimmed text with length limits, positive weights up to 500 kg, no future birth dates), also when updating. Invalid data gets a `400 { "error": "Invalid record data" }`, never a `500`. Emails are stored in lower case, so `Ali@Mail.com` and `ali@mail.com` are the same account. Blog cover images must be `https://` URLs. Passwords are limited to 72 bytes, the part bcrypt actually uses (Turkish letters such as ğ count as 2).
+- **Input validation:** the API enforces the same rules as the forms (required fields, trimmed text with length limits, positive weights up to 500 kg, no future birth dates), also when updating. Invalid data gets a `400 { "error": "Invalid record data" }`, never a `500`. Emails are stored in lower case, so `Ali@Mail.com` and `ali@mail.com` are the same account. Blog cover photos are checked by their content (only real JPEG, PNG or WebP, at most 2 MB); older posts may still use an `https://` image URL. Passwords are limited to 72 bytes, the part bcrypt actually uses (Turkish letters such as ğ count as 2).
 - **Brute-force protection:** at most 10 failed attempts per IP per 15 minutes across login, register, password change and account deletion (`429` afterwards); successful attempts don't count. A failed login takes the same time whether or not the email is registered.
 - **Rate limit:** 1000 API requests per IP per 15 minutes.
 - **Security headers** via [helmet](https://helmetjs.github.io/) (no-sniff, frame denial, HSTS, CSP, no `X-Powered-By`).
@@ -258,9 +258,10 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 |---|---|---|
 | `GET` | `/api/blogs?page=1&limit=9` | List posts, newest first. Returns `{ items, page, limit, total, totalPages }`; `limit` is capped at 50 and a page past the end returns the last page |
 | `GET` | `/api/blogs/:id` | Get one post |
-| `POST` | `/api/blogs` 🔒 | Create a post |
-| `PUT` | `/api/blogs/:id` 🔒 | Update your own post |
+| `POST` | `/api/blogs` 🔒 | Create a post; an optional `imageData` (data URL of a JPEG/PNG/WebP photo) is stored as its cover |
+| `PUT` | `/api/blogs/:id` 🔒 | Update your own post; `imageData` replaces the photo, `image: ""` removes it (the old photo is deleted) |
 | `DELETE` | `/api/blogs/:id` 🔒 | Delete your own post |
+| `GET` | `/api/images/:id` | A post's cover photo (cached by the browser for a week) |
 
 ---
 

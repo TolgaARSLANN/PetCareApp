@@ -31,7 +31,7 @@ describe('blog write permissions', () => {
   test('update and delete only match posts owned by the user', async () => {
     const userId = newId();
     const blogId = newId();
-    const update = jest.spyOn(Blog, 'findOneAndUpdate').mockResolvedValue(null);
+    const update = jest.spyOn(Blog, 'findOne').mockResolvedValue(null);
     const remove = jest.spyOn(Blog, 'findOneAndDelete').mockResolvedValue(null);
     const auth = `Bearer ${tokenFor(userId)}`;
 

@@ -557,6 +557,42 @@ button {
   color: var(--color-text-subtle);
 }
 
+/* Kapak fotoğrafı seçici: gerçek dosya alanı gizli, etiketi düğme gibi görünür */
+.photo-preview {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.photo-preview img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+}
+
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.photo-actions label {
+  cursor: pointer;
+}
+
+.photo-actions input:focus-visible + label {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.photo-actions input:disabled + label {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .field-error {
   font-size: var(--text-sm);
   color: var(--color-danger-text);
