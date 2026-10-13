@@ -43,7 +43,7 @@ describe('display name rules', () => {
 
 describe('POST /api/auth/register with a display name', () => {
   const register = (body) =>
-    request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', ...body });
+    request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', acceptTerms: true, ...body });
 
   test('requires a valid display name', async () => {
     for (const displayName of [undefined, '', 'A', 'Tоlga']) {
