@@ -46,12 +46,19 @@ app.use('/api', apiLimiter);
 // Sağlık kontrolü: barındırma servisi (Render) bunu yoklar; veritabanı bağlantısı yoksa 503 döner ve
 // servis yeniden başlatılır. clientIp, sunucunun isteği yapanı hangi IP ile gördüğünü gösterir
 // (yalnızca isteği yapanın kendi IP'si): TRUST_PROXY doğruysa ziyaretçinin gerçek IP'si olmalı.
+// proxyChain, isteğin geçtiği adresler sunucudan geriye doğru: [0] doğrudan bağlanan vekil, sonra
+// X-Forwarded-For sağdan sola. Ziyaretçinin IP'si hangi sıradaysa TRUST_PROXY o sayı olmalı.
 app.get('/api/health', (req, res) => {
   const connected = database.isConnected();
+  const forwarded = (req.headers['x-forwarded-for'] || '')
+    .split(',')
+    .map((address) => address.trim())
+    .filter(Boolean);
   res.status(connected ? 200 : 503).json({
     status: connected ? 'ok' : 'unavailable',
     database: connected ? 'connected' : 'disconnected',
     clientIp: req.ip,
+    proxyChain: [req.socket.remoteAddress, ...forwarded.reverse()],
   });
 });
 app.use('/api/auth', authRoutes);
