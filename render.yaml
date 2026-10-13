@@ -24,7 +24,11 @@ services:
       # The site's address on Vercel, e.g. https://pawfect-care.vercel.app
       - key: CLIENT_ORIGIN
         sync: false
-      # Proxies between the visitor and the API (Vercel + Render's load balancer), so rate limits
-      # see the visitor's real IP. Checked after the first deploy; see README > Deployment.
+      # Proxies between the visitor and the API (Render's own proxies, Cloudflare and Vercel), so
+      # rate limits see the visitor's real IP. Measured with /api/health; see README > Deployment.
       - key: TRUST_PROXY
-        value: "2"
+        value: "4"
+      # Shared with Vercel (PROXY_SECRET there too): only requests from the site reach the API.
+      # Entered in both dashboards, never committed; see README > Deployment.
+      - key: PROXY_SECRET
+        sync: false

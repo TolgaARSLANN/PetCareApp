@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const config = require('./config');
 const { apiLimiter, imageLimiter } = require('./middleware/rateLimits');
 const database = require('./services/database');
+const requireProxySecret = require('./middleware/proxySecret');
 
 const authRoutes = require('./routes/auth');
 const petRoutes = require('./routes/pets');
@@ -21,6 +22,9 @@ app.set('trust proxy', config.trustProxy);
 
 // Security headers (no-sniff, frame denial, HSTS, a strict CSP for API responses, ...)
 app.use(helmet());
+
+// In production only requests that came through the site's proxy reach the API
+app.use(requireProxySecret);
 
 // CORS: only the configured frontend origin may call the API, with cookies
 app.use(cors({ origin: config.clientOrigin, credentials: true }));
