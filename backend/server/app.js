@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const config = require('./config');
 const { apiLimiter, imageLimiter } = require('./middleware/rateLimits');
+const database = require('./services/database');
 
 const authRoutes = require('./routes/auth');
 const petRoutes = require('./routes/pets');
@@ -41,6 +42,18 @@ app.get('/', (req, res) => {
 // Fotoğrafların kendi, daha cömert sınırı var: bir blog sayfası tek seferde 9 fotoğraf ister
 app.use('/api/images', imageLimiter, imageRoutes);
 app.use('/api', apiLimiter);
+
+// Sağlık kontrolü: barındırma servisi (Render) bunu yoklar; veritabanı bağlantısı yoksa 503 döner ve
+// servis yeniden başlatılır. clientIp, sunucunun isteği yapanı hangi IP ile gördüğünü gösterir
+// (yalnızca isteği yapanın kendi IP'si): TRUST_PROXY doğruysa ziyaretçinin gerçek IP'si olmalı.
+app.get('/api/health', (req, res) => {
+  const connected = database.isConnected();
+  res.status(connected ? 200 : 503).json({
+    status: connected ? 'ok' : 'unavailable',
+    database: connected ? 'connected' : 'disconnected',
+    clientIp: req.ip,
+  });
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
 app.use('/api/blogs', blogRoutes);
