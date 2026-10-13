@@ -27,7 +27,7 @@ const Privacy = () => {
 
           <h2>1. Veri sorumlusu</h2>
           <p>
-            Pawfect Care kişisel bir projedir. Veri sorumlusu <strong>{CONTROLLER_NAME}</strong>'dır. Bu metinle ilgili
+            Pawfect Care kişisel bir portföy projesidir; lütfen hassas bilgiler girmeyin. Veri sorumlusu <strong>{CONTROLLER_NAME}</strong>'dır. Bu metinle ilgili
             her türlü soru ve talep için: <Mail />
           </p>
 
@@ -161,10 +161,10 @@ const Privacy = () => {
             hiçbir sistem tamamen risksiz değildir; güçlü ve başka sitelerde kullanmadığınız bir parola seçmenizi öneririz.
           </p>
 
-          <h2>9. Yaş sınırı</h2>
+          <h2>9. 18 yaşından küçükler</h2>
           <p>
-            Pawfect Care'e yalnızca 18 yaşını doldurmuş kişiler üye olabilir. 18 yaşından küçük birine ait bir hesap
-            olduğunu fark ederseniz lütfen bize yazın; hesap silinir.
+            18 yaşından küçükseniz siteyi veli ya da vasinizin izniyle kullanabilirsiniz. Veli ya da vasi olarak,
+            çocuğunuza ait bir hesabın silinmesini istiyorsanız lütfen bize yazın.
           </p>
 
           <h2>10. Değişiklikler</h2>

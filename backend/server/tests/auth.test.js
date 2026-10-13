@@ -38,12 +38,12 @@ describe('POST /api/auth/register', () => {
     expect(saved.password).not.toBe('123456');
     expect(await bcrypt.compare('123456', saved.password)).toBe(true);
     expect(saved).toMatchObject({ displayName: 'Tolga Arslan', displayNameKey: 'tolgaarslan' });
-    // 18 yaş ve Kullanım Koşulları onayı: ne zaman ve hangi sürüm
+    // Kullanım Koşulları onayı: ne zaman ve hangi sürüm
     expect(saved.termsVersion).toBe('2026-10-14');
     expect(saved.termsAcceptedAt).toBeInstanceOf(Date);
   });
 
-  test('requires an explicit yes to the terms (18+ and terms of use)', async () => {
+  test('requires an explicit yes to the terms of use', async () => {
     const create = jest.spyOn(User, 'create');
     for (const acceptTerms of [undefined, false, 'true', 1]) {
       const res = await request(app)

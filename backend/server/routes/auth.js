@@ -57,7 +57,7 @@ router.post('/register', authLimiter, async (req, res) => {
     if (validationError) return res.status(400).json({ message: validationError });
     const displayName = parseDisplayName(req.body.displayName);
     if (!displayName) return res.status(400).json({ message: INVALID_DISPLAY_NAME });
-    // 18 yaş ve Kullanım Koşulları onayı (formdaki kutu); yalnızca açık bir "evet" sayılır
+    // Kullanım Koşulları onayı (formdaki kutu); yalnızca açık bir "evet" sayılır
     if (req.body.acceptTerms !== true) return res.status(400).json({ message: 'Terms must be accepted' });
 
     const existingUser = await findByEmail(email);

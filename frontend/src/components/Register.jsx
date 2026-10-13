@@ -18,7 +18,7 @@ const ERROR_TRANSLATIONS = {
   "A valid email is required": "Geçerli bir e-posta adresi girin.",
   "Password must be at least 6 characters": "Parola en az 6 karakter olmalı.",
   "Password must be at most 72 bytes": PASSWORD_TOO_LONG,
-  "Terms must be accepted": "Üye olmak için 18 yaşından büyük olduğunuzu ve Kullanım Koşulları'nı kabul ettiğinizi onaylayın.",
+  "Terms must be accepted": "Üye olmak için Kullanım Koşulları'nı kabul etmeniz gerekir.",
   "Too many attempts, please try again later":
     "Çok fazla başarısız deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin.",
 };
@@ -138,7 +138,6 @@ const Register = () => {
               aria-describedby="privacy-note"
             />
             <span>
-              18 yaşından büyüğüm ve{" "}
               <Link to="/terms" target="_blank" rel="noopener">
                 Kullanım Koşulları
               </Link>

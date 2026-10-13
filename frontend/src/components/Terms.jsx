@@ -18,14 +18,14 @@ const Terms = () => {
         <article className="card legal">
           <p>
             Pawfect Care, evcil dostlarınızın sağlık kayıtlarını tutmanıza ve blogda deneyim paylaşmanıza yarayan
-            ücretsiz bir sitedir. {CONTROLLER_NAME} tarafından kişisel bir proje olarak yayınlanır. Siteye üye olarak bu
-            koşulları kabul etmiş olursunuz. Kişisel verilerinizin nasıl işlendiği{" "}
+            ücretsiz bir sitedir. {CONTROLLER_NAME} tarafından kişisel bir portföy projesi olarak yayınlanır; lütfen
+            hassas bilgiler girmeyin. Siteye üye olarak bu koşulları kabul etmiş olursunuz. Kişisel verilerinizin nasıl işlendiği{" "}
             <Link to="/privacy">Gizlilik ve Aydınlatma Metni</Link>'nde anlatılır.
           </p>
 
           <h2>1. Üyelik</h2>
           <ul>
-            <li>Üye olmak için 18 yaşını doldurmuş olmanız gerekir.</li>
+            <li>18 yaşından küçükseniz siteyi veli ya da vasinizin izniyle kullanabilirsiniz.</li>
             <li>
               Hesabınızın güvenliğinden siz sorumlusunuz: parolanızı kimseyle paylaşmayın. Hesabınızın izinsiz
               kullanıldığından şüphelenirseniz parolanızı değiştirin ve Hesabım sayfasından tüm cihazlardan çıkış yapın.

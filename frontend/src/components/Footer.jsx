@@ -27,7 +27,7 @@ const Footer = () => {
         </nav>
       </div>
       <div className="container footer-bottom">
-        <p>© {new Date().getFullYear()} Pawfect Care</p>
+        <p>© {new Date().getFullYear()} Pawfect Care · Bir portföy projesidir; lütfen hassas bilgiler girmeyin.</p>
         <ul className="footer-legal">
           <li>
             <Link to="/privacy">Gizlilik ve Aydınlatma Metni</Link>

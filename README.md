@@ -26,7 +26,7 @@ The UI is in Turkish. It has light and dark themes (follows the system setting u
 
 | Feature | Description |
 |---|---|
-| 🔐 **Accounts** | Register with a display name, confirming age 18+ and the terms of use (the password is typed twice) and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the display name or the password (which signs out other devices), sign out of all devices, download all of your data as a JSON file, or permanently delete the account with all its pets and posts |
+| 🔐 **Accounts** | Register with a display name, accepting the terms of use (the password is typed twice) and log in with email and password (bcrypt-hashed, JWT sessions); an account page to change the display name or the password (which signs out other devices), sign out of all devices, download all of your data as a JSON file, or permanently delete the account with all its pets and posts |
 | 🐶 **Pet Profiles** | Add, edit and delete pets with an optional photo from your device; every pet is visible only to its owner |
 | 🏥 **Health Records** | Log dated health notes for each pet; every record (health, vaccine, weight, medication, appointment, contact) can be edited or deleted |
 | 💉 **Vaccines** | Record vaccines with the date given and the booster due date; overdue and upcoming (30 days) boosters are flagged |
@@ -271,7 +271,7 @@ Rate limits count requests per visitor IP. Behind Vercel and Render the API must
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/health` | Service status: `{ status, database, clientIp }` (503 while the database is unreachable) |
-| `POST` | `/api/auth/register` | Create an account (`displayName`, `email`, `password`, `acceptTerms: true` for 18+ and the terms of use; the time and terms version are stored); logs the new user in (sets the session cookie) and returns `{ userId, displayName }` |
+| `POST` | `/api/auth/register` | Create an account (`displayName`, `email`, `password`, `acceptTerms: true` for the terms of use; the time and terms version are stored); logs the new user in (sets the session cookie) and returns `{ userId, displayName }` |
 | `POST` | `/api/auth/login` | Log in; sets the session cookie and returns `{ userId, displayName }` |
 | `GET` | `/api/auth/me` | Current user: `{ userId, displayName }`, or `{ userId: null }` when logged out |
 | `POST` | `/api/auth/logout` | Clear the session cookie |

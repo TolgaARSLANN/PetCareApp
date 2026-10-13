@@ -17,7 +17,19 @@ const WhoAmI = () => <p>Evcil dostlar: {useAuth().user?.id}</p>;
 const passwordInput = () => screen.getByLabelText(/^Parola\s*\*?$/, { selector: "input" });
 const repeatInput = () => screen.getByLabelText(/Parola \(tekrar\)/, { selector: "input" });
 
-const termsBox = () => screen.getByRole("checkbox", { name: /18 yaşından büyüğüm/ });
+// Alanları yapıştırarak doldurur: harf harf yazmak (özellikle uzun parolalar) testleri yavaşlatır
+const paste = async (user, input, text) => {
+  await user.click(input);
+  await user.paste(text);
+};
+const fillForm = async (user, password, repeat) => {
+  await paste(user, screen.getByLabelText(/Görünen ad/), "Ayşe");
+  await paste(user, screen.getByLabelText(/E-posta/), "a@b.com");
+  await paste(user, passwordInput(), password);
+  await paste(user, repeatInput(), repeat);
+};
+
+const termsBox = () => screen.getByRole("checkbox", { name: /Kullanım Koşulları'nı kabul ediyorum/ });
 // Kutu işaretli değilse işaretler (formu ikinci kez gönderen testlerde işareti kaldırmasın)
 const acceptTerms = async (user) => {
   if (!termsBox().checked) await user.click(termsBox());
@@ -57,10 +69,7 @@ describe("Register", () => {
     vi.mocked(API.post).mockResolvedValue({ data: { userId: "u7", displayName: "Ayşe" } });
     await renderRegister();
 
-    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
-    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
-    await user.type(passwordInput(), "secret1");
-    await user.type(repeatInput(), "secret1");
+    await fillForm(user, "secret1", "secret1");
     await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
@@ -71,10 +80,7 @@ describe("Register", () => {
   test("a password over 72 bytes is explained before sending", async () => {
     const user = userEvent.setup();
     await renderRegister();
-    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
-    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
-    await user.type(passwordInput(), "ğ".repeat(37));
-    await user.type(repeatInput(), "ğ".repeat(37));
+    await fillForm(user, "ğ".repeat(37), "ğ".repeat(37));
     await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
@@ -85,10 +91,7 @@ describe("Register", () => {
   test("passwords that do not match are explained at the field and nothing is sent", async () => {
     const user = userEvent.setup();
     await renderRegister();
-    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
-    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
-    await user.type(passwordInput(), "secret1");
-    await user.type(repeatInput(), "secret2");
+    await fillForm(user, "secret1", "secret2");
     await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
@@ -120,16 +123,13 @@ describe("Register", () => {
     const user = userEvent.setup();
     vi.mocked(API.post).mockRejectedValue({ response: { status: 400, data: { message: "Display name in use" } } });
     await renderRegister();
-    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
-    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
-    await user.type(passwordInput(), "secret1");
-    await user.type(repeatInput(), "secret1");
+    await fillForm(user, "secret1", "secret1");
     await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
     expect(await screen.findByText(/başka bir üye tarafından kullanılıyor/)).toBeInTheDocument();
   });
 
-  test("the age and terms box must be ticked; the privacy notice is linked separately", async () => {
+  test("the terms box must be ticked; the privacy notice is linked separately", async () => {
     const user = userEvent.setup();
     await renderRegister();
     expect(termsBox()).not.toBeChecked();
@@ -137,10 +137,7 @@ describe("Register", () => {
     expect(screen.getByRole("link", { name: "Kullanım Koşulları" })).toHaveAttribute("href", "/terms");
     expect(screen.getByRole("link", { name: "Gizlilik ve Aydınlatma Metni" })).toHaveAttribute("href", "/privacy");
 
-    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
-    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
-    await user.type(passwordInput(), "secret1");
-    await user.type(repeatInput(), "secret1");
+    await fillForm(user, "secret1", "secret1");
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
     expect(API.post).not.toHaveBeenCalled(); // tarayıcı işaretsiz kutuyla göndermez
   });
