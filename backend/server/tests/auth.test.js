@@ -19,7 +19,7 @@ describe('POST /api/auth/register', () => {
 
   test('rejects an email that is already registered', async () => {
     jest.spyOn(User, 'findOne').mockResolvedValue({ email: 'a@b.com' });
-    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456' });
+    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan' });
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('Email in use');
   });
@@ -27,22 +27,23 @@ describe('POST /api/auth/register', () => {
   test('creates the user with a hashed password', async () => {
     jest.spyOn(User, 'findOne').mockResolvedValue(null);
     const create = jest.spyOn(User, 'create').mockResolvedValue({ _id: 'u7', tokenVersion: 0 });
-    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456' });
+    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan' });
     expect(res.status).toBe(201);
     // Kayıt oturumu da başlatır: yanıtta yalnızca kullanıcı ID'si, token httpOnly çerezde
-    expect(res.body).toEqual({ userId: 'u7' });
+    expect(res.body).toEqual({ userId: 'u7', displayName: 'Tolga Arslan' });
     const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
     expect(cookie).toMatch(/HttpOnly/i);
     expect(jwt.verify(cookie.split(';')[0].slice('token='.length), 'test-secret').userId).toBe('u7');
     const saved = create.mock.calls[0][0];
     expect(saved.password).not.toBe('123456');
     expect(await bcrypt.compare('123456', saved.password)).toBe(true);
+    expect(saved).toMatchObject({ displayName: 'Tolga Arslan', displayNameKey: 'tolgaarslan' });
   });
 
   test('returns 500 instead of crashing when the database fails', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(User, 'findOne').mockRejectedValue(new Error('db down'));
-    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456' });
+    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan' });
     expect(res.status).toBe(500);
   });
 });
@@ -66,7 +67,7 @@ describe('POST /api/auth/login', () => {
     const res = await request(app).post('/api/auth/login').send({ email: 'a@b.com', password: 'correct' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ userId: 'u1' });
+    expect(res.body).toEqual({ userId: 'u1', displayName: null });
     expect(res.body.token).toBeUndefined();
 
     const cookie = res.headers['set-cookie'].find((c) => c.startsWith('token='));
@@ -86,7 +87,7 @@ describe('session endpoints', () => {
     const id = '507f1f77bcf86cd799439011';
     const res = await request(app).get('/api/auth/me').set('Cookie', tokenCookie(id));
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ userId: id });
+    expect(res.body).toEqual({ userId: id, displayName: 'Test Yazar' });
   });
 
   test('GET /me without a session answers "nobody"', async () => {

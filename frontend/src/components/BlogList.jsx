@@ -39,7 +39,8 @@ const BlogList = () => {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const navigate = useNavigate();
-  const currentUserId = useAuth().user?.id;
+  const { user } = useAuth();
+  const currentUserId = user?.id;
   const [searchParams, setSearchParams] = useSearchParams();
   const page = parsePage(searchParams.get("page"));
   const listTopRef = useRef(null);
@@ -157,7 +158,12 @@ const BlogList = () => {
           <h2 id="new-post-title" className="card-title">
             Yeni yazı
           </h2>
-          <BlogForm submitLabel="Yayınla" onSubmit={handleCreate} onCancel={() => setFormOpen(false)} />
+          <BlogForm
+            submitLabel="Yayınla"
+            authorName={user?.displayName}
+            onSubmit={handleCreate}
+            onCancel={() => setFormOpen(false)}
+          />
         </section>
       )}
 

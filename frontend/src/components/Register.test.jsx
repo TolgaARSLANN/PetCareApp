@@ -48,21 +48,23 @@ describe("Register", () => {
 
   test("a new account is logged in straight away", async () => {
     const user = userEvent.setup();
-    vi.mocked(API.post).mockResolvedValue({ data: { userId: "u7" } });
+    vi.mocked(API.post).mockResolvedValue({ data: { userId: "u7", displayName: "Ayşe" } });
     await renderRegister();
 
+    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
     await user.type(passwordInput(), "secret1");
     await user.type(repeatInput(), "secret1");
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
-    expect(API.post).toHaveBeenCalledWith("/auth/register", { email: "a@b.com", password: "secret1" });
+    expect(API.post).toHaveBeenCalledWith("/auth/register", { displayName: "Ayşe", email: "a@b.com", password: "secret1" });
     expect(await screen.findByText("Evcil dostlar: u7")).toBeInTheDocument();
   });
 
   test("a password over 72 bytes is explained before sending", async () => {
     const user = userEvent.setup();
     await renderRegister();
+    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
     await user.type(passwordInput(), "ğ".repeat(37));
     await user.type(repeatInput(), "ğ".repeat(37));
@@ -75,6 +77,7 @@ describe("Register", () => {
   test("passwords that do not match are explained at the field and nothing is sent", async () => {
     const user = userEvent.setup();
     await renderRegister();
+    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
     await user.type(passwordInput(), "secret1");
     await user.type(repeatInput(), "secret2");
@@ -91,7 +94,7 @@ describe("Register", () => {
     await user.type(repeatInput(), "secret1");
     expect(screen.queryByText("Parolalar eşleşmiyor.")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
-    expect(API.post).toHaveBeenCalledWith("/auth/register", { email: "a@b.com", password: "secret1" });
+    expect(API.post).toHaveBeenCalledWith("/auth/register", { displayName: "Ayşe", email: "a@b.com", password: "secret1" });
   });
 
   test("the warning waits until the user leaves the repeat field", async () => {
@@ -102,5 +105,17 @@ describe("Register", () => {
     expect(screen.queryByText("Parolalar eşleşmiyor.")).not.toBeInTheDocument(); // yazarken uyarma
     await user.tab();
     expect(screen.getByText("Parolalar eşleşmiyor.")).toBeInTheDocument();
+  });
+
+  test("a display name someone else uses is explained in Turkish", async () => {
+    const user = userEvent.setup();
+    vi.mocked(API.post).mockRejectedValue({ response: { status: 400, data: { message: "Display name in use" } } });
+    await renderRegister();
+    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
+    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
+    await user.type(passwordInput(), "secret1");
+    await user.type(repeatInput(), "secret1");
+    await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
+    expect(await screen.findByText(/başka bir üye tarafından kullanılıyor/)).toBeInTheDocument();
   });
 });

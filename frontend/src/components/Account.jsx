@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { DeviceMobile, DownloadSimple, Key, SignOut, Trash, UserCircle } from "@phosphor-icons/react";
+import { DeviceMobile, DownloadSimple, IdentificationCard, Key, SignOut, Trash, UserCircle } from "@phosphor-icons/react";
 import API from "../services/api";
 import { useAuth } from "../context/useAuth";
 import Alert from "./ui/Alert";
@@ -9,6 +9,7 @@ import PasswordInput from "./ui/PasswordInput";
 import { PageLoader, Spinner } from "./ui/Loading";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 import { todayInputValue } from "../utils/format";
+import { DISPLAY_NAME_ERRORS, DISPLAY_NAME_HINT, DISPLAY_NAME_MAX } from "../utils/displayName";
 import { isPasswordTooLong, PASSWORD_TOO_LONG } from "../utils/validation";
 
 const MIN_PASSWORD_LENGTH = 6;
@@ -26,6 +27,77 @@ const errorMessage = (err, translations, fallback) => {
     return "Çok fazla başarısız deneme yapıldı. Güvenliğiniz için lütfen 15 dakika sonra tekrar deneyin.";
   }
   return translations[err.response?.data?.message] || (err.response ? fallback : "Sunucuya ulaşılamadı.");
+};
+
+// Görünen ad: blog yazılarında yazar olarak görünür. Değişince sunucu mevcut yazıları da günceller.
+// Bu özellikten önce açılan hesaplarda henüz yoktur; o zamana kadar yeni yazı yayınlanamaz.
+const DisplayName = ({ initialName }) => {
+  const { setDisplayName } = useAuth();
+  const [saved, setSaved] = useState(initialName || "");
+  const [name, setName] = useState(initialName || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    setSuccess(false);
+    try {
+      const { data } = await API.put("/auth/display-name", { displayName: name });
+      setSaved(data.displayName);
+      setName(data.displayName);
+      setDisplayName(data.displayName);
+      setSuccess(true);
+    } catch (err) {
+      setError(errorMessage(err, DISPLAY_NAME_ERRORS, "Görünen ad kaydedilemedi. Lütfen tekrar deneyin."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="card form-card" aria-labelledby="display-name-title">
+      <div className="section-card-head">
+        <span className="icon-tile">
+          <IdentificationCard size={22} weight="duotone" aria-hidden="true" />
+        </span>
+        <h2 id="display-name-title" className="card-title">
+          Görünen ad
+        </h2>
+      </div>
+      <p className="text-muted">
+        {saved
+          ? "Blog yazılarınızda yazar olarak bu ad görünür. Değiştirdiğinizde mevcut yazılarınızda da güncellenir."
+          : "Henüz bir görünen adınız yok. Blog yazısı yayınlamak için bir ad belirleyin; mevcut yazılarınızda da bu ad görünür."}
+      </p>
+      {success && (
+        <Alert type="success" onClose={() => setSuccess(false)}>
+          Görünen adınız kaydedildi.
+        </Alert>
+      )}
+      {error && <Alert type="error">{error}</Alert>}
+      <form className="form-stack" onSubmit={handleSubmit}>
+        <Field id="display-name" label="Görünen ad" hint={DISPLAY_NAME_HINT} required>
+          <input
+            type="text"
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="nickname"
+            maxLength={DISPLAY_NAME_MAX}
+          />
+        </Field>
+        <div className="form-actions">
+          <button type="submit" className="btn btn-primary" disabled={busy || name.trim() === saved}>
+            {busy && <Spinner size={16} />}
+            Kaydet
+          </button>
+        </div>
+      </form>
+    </section>
+  );
 };
 
 const ChangePassword = () => {
@@ -358,6 +430,7 @@ const Account = () => {
         <Alert type="error">{error}</Alert>
       ) : (
         <>
+          <DisplayName initialName={account.displayName} />
           <ChangePassword />
           <SignOutEverywhere />
           <ExportData />

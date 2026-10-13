@@ -15,7 +15,8 @@ const BlogEditForm = () => {
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const currentUserId = useAuth().user?.id;
+  const { user } = useAuth();
+  const currentUserId = user?.id;
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -54,7 +55,9 @@ const BlogEditForm = () => {
       ) : (
         <div className="card form-card">
           <BlogForm
-            initialValues={{ title: blog.title, content: blog.content, author: blog.author, image: blog.image || "" }}
+            initialValues={{ title: blog.title, content: blog.content, image: blog.image || "" }}
+            // Görünen adı olmayan eski hesaplarda yazı eski yazar adını korur (sunucu da öyle yapar)
+            authorName={user?.displayName || blog.author}
             submitLabel="Değişiklikleri kaydet"
             onSubmit={handleUpdate}
             onCancel={() => navigate(`/blogs/${id}`)}

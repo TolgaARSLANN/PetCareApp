@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import Alert from "./ui/Alert";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import Field from "./ui/Field";
@@ -7,11 +8,15 @@ import { Spinner } from "./ui/Loading";
 import { photoErrorMessage } from "../utils/photoErrors";
 import useUnsavedChanges from "../hooks/useUnsavedChanges";
 
-const EMPTY = { title: "", content: "", author: "", image: "" };
+const EMPTY = { title: "", content: "", image: "" };
+
+const NEEDS_DISPLAY_NAME = "Yazı yayınlamak için önce Hesabım sayfasından bir görünen ad belirleyin.";
 
 // Yeni yazı ve düzenleme için ortak form. Kaydetme işini onSubmit yapar; hata fırlatırsa mesaj gösterilir.
 // Kapak fotoğrafı: values.image mevcut fotoğrafın adresi, photo yeni seçilen ve küçültülmüş fotoğraf.
-const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, autoFocus = true }) => {
+// Yazar adı formda yazılmaz: sunucu yazarın görünen adını kullanır (authorName yalnızca gösterilir).
+// Görünen adı olmayan eski hesaplar önce adlarını belirler; o zamana kadar gönderme kapalıdır.
+const BlogForm = ({ initialValues = EMPTY, authorName, submitLabel, onSubmit, onCancel, autoFocus = true }) => {
   const [initial] = useState(() => ({ ...EMPTY, ...initialValues }));
   const [values, setValues] = useState(initial);
   const [photo, setPhoto] = useState(null); // { dataUrl, size }
@@ -40,11 +45,10 @@ const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, auto
     const trimmed = {
       title: values.title.trim(),
       content: values.content.trim(),
-      author: values.author.trim(),
       image: values.image,
     };
-    if (!trimmed.title || !trimmed.content || !trimmed.author) {
-      setError("Başlık, içerik ve yazar alanları zorunludur.");
+    if (!trimmed.title || !trimmed.content) {
+      setError("Başlık ve içerik alanları zorunludur.");
       return;
     }
     setBusy(true);
@@ -56,7 +60,11 @@ const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, auto
     } catch (err) {
       allowLeave(false);
       console.error(err);
-      setError(photoErrorMessage(err) || "Yazı kaydedilemedi. Lütfen tekrar deneyin.");
+      setError(
+        err.response?.status === 409
+          ? NEEDS_DISPLAY_NAME
+          : photoErrorMessage(err) || "Yazı kaydedilemedi. Lütfen tekrar deneyin."
+      );
       setBusy(false);
     }
   };
@@ -78,16 +86,17 @@ const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, auto
         <Field id="blog-content" label="İçerik" hint="Paragrafları boş satırla ayırabilirsiniz." required>
           <textarea className="input" rows={8} value={values.content} onChange={set("content")} maxLength={20000} />
         </Field>
-        <Field id="blog-author" label="Yazar adı" hint="Yazının altında görünecek isim." required>
-          <input
-            type="text"
-            className="input"
-            value={values.author}
-            onChange={set("author")}
-            autoComplete="name"
-            maxLength={60}
-          />
-        </Field>
+        {authorName ? (
+          <p className="text-muted">
+            Yazar: <strong>{authorName}</strong> · Görünen adınızı <Link to="/account">Hesabım</Link> sayfasından
+            değiştirebilirsiniz.
+          </p>
+        ) : (
+          <Alert type="info">
+            Yazı yayınlamak için önce <Link to="/account">Hesabım</Link> sayfasından bir görünen ad belirleyin.
+            Yazılarınızda yazar olarak bu ad görünür.
+          </Alert>
+        )}
 
         <PhotoPicker
           label="Kapak fotoğrafı"
@@ -106,7 +115,7 @@ const BlogForm = ({ initialValues = EMPTY, submitLabel, onSubmit, onCancel, auto
               Vazgeç
             </button>
           )}
-          <button type="submit" className="btn btn-primary" disabled={busy || photoBusy}>
+          <button type="submit" className="btn btn-primary" disabled={busy || photoBusy || !authorName}>
             {busy && <Spinner size={16} />}
             {submitLabel}
           </button>

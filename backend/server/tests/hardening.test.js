@@ -38,7 +38,7 @@ describe('password length in bytes (bcrypt reads only 72)', () => {
   test('register accepts 72 bytes and rejects more', async () => {
     jest.spyOn(User, 'findOne').mockResolvedValue(null);
     jest.spyOn(User, 'create').mockResolvedValue({});
-    const register = (password) => request(app).post('/api/auth/register').send({ email: 'a@b.com', password });
+    const register = (password) => request(app).post('/api/auth/register').send({ email: 'a@b.com', password, displayName: 'Ali' });
 
     expect((await register(at72)).status).toBe(201);
     const res = await register(`${at72}X`);
@@ -110,7 +110,7 @@ describe('sliding session', () => {
     const res = await request(app)
       .get('/api/auth/me')
       .set('Cookie', cookie({ iat: t - 20 * 3600, exp: t + 4 * 3600, at: t - DAY }));
-    expect(res.body).toEqual({ userId });
+    expect(res.body).toEqual({ userId, displayName: 'Test Yazar' });
     expect(tokenCookieFrom(res)).toBeDefined();
   });
 
