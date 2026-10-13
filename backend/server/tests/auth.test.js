@@ -19,7 +19,7 @@ describe('POST /api/auth/register', () => {
 
   test('rejects an email that is already registered', async () => {
     jest.spyOn(User, 'findOne').mockResolvedValue({ email: 'a@b.com' });
-    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan' });
+    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan', acceptTerms: true });
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('Email in use');
   });
@@ -27,7 +27,7 @@ describe('POST /api/auth/register', () => {
   test('creates the user with a hashed password', async () => {
     jest.spyOn(User, 'findOne').mockResolvedValue(null);
     const create = jest.spyOn(User, 'create').mockResolvedValue({ _id: 'u7', tokenVersion: 0 });
-    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan' });
+    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan', acceptTerms: true });
     expect(res.status).toBe(201);
     // Kayıt oturumu da başlatır: yanıtta yalnızca kullanıcı ID'si, token httpOnly çerezde
     expect(res.body).toEqual({ userId: 'u7', displayName: 'Tolga Arslan' });
@@ -38,12 +38,27 @@ describe('POST /api/auth/register', () => {
     expect(saved.password).not.toBe('123456');
     expect(await bcrypt.compare('123456', saved.password)).toBe(true);
     expect(saved).toMatchObject({ displayName: 'Tolga Arslan', displayNameKey: 'tolgaarslan' });
+    // 18 yaş ve Kullanım Koşulları onayı: ne zaman ve hangi sürüm
+    expect(saved.termsVersion).toBe('2026-10-14');
+    expect(saved.termsAcceptedAt).toBeInstanceOf(Date);
+  });
+
+  test('requires an explicit yes to the terms (18+ and terms of use)', async () => {
+    const create = jest.spyOn(User, 'create');
+    for (const acceptTerms of [undefined, false, 'true', 1]) {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan', acceptTerms });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Terms must be accepted');
+    }
+    expect(create).not.toHaveBeenCalled();
   });
 
   test('returns 500 instead of crashing when the database fails', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(User, 'findOne').mockRejectedValue(new Error('db down'));
-    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan' });
+    const res = await request(app).post('/api/auth/register').send({ email: 'a@b.com', password: '123456', displayName: 'Tolga Arslan', acceptTerms: true });
     expect(res.status).toBe(500);
   });
 });

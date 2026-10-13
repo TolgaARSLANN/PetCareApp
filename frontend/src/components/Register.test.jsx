@@ -17,6 +17,12 @@ const WhoAmI = () => <p>Evcil dostlar: {useAuth().user?.id}</p>;
 const passwordInput = () => screen.getByLabelText(/^Parola\s*\*?$/, { selector: "input" });
 const repeatInput = () => screen.getByLabelText(/Parola \(tekrar\)/, { selector: "input" });
 
+const termsBox = () => screen.getByRole("checkbox", { name: /18 yaşından büyüğüm/ });
+// Kutu işaretli değilse işaretler (formu ikinci kez gönderen testlerde işareti kaldırmasın)
+const acceptTerms = async (user) => {
+  if (!termsBox().checked) await user.click(termsBox());
+};
+
 const renderRegister = async () => {
   render(
     <AuthProvider>
@@ -55,9 +61,10 @@ describe("Register", () => {
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
     await user.type(passwordInput(), "secret1");
     await user.type(repeatInput(), "secret1");
+    await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
-    expect(API.post).toHaveBeenCalledWith("/auth/register", { displayName: "Ayşe", email: "a@b.com", password: "secret1" });
+    expect(API.post).toHaveBeenCalledWith("/auth/register", { displayName: "Ayşe", email: "a@b.com", password: "secret1", acceptTerms: true });
     expect(await screen.findByText("Evcil dostlar: u7")).toBeInTheDocument();
   });
 
@@ -68,6 +75,7 @@ describe("Register", () => {
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
     await user.type(passwordInput(), "ğ".repeat(37));
     await user.type(repeatInput(), "ğ".repeat(37));
+    await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
     expect(screen.getByText(/Parola çok uzun/)).toBeInTheDocument();
@@ -81,6 +89,7 @@ describe("Register", () => {
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
     await user.type(passwordInput(), "secret1");
     await user.type(repeatInput(), "secret2");
+    await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
 
     expect(screen.getByText("Parolalar eşleşmiyor.")).toBeInTheDocument();
@@ -94,7 +103,7 @@ describe("Register", () => {
     await user.type(repeatInput(), "secret1");
     expect(screen.queryByText("Parolalar eşleşmiyor.")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
-    expect(API.post).toHaveBeenCalledWith("/auth/register", { displayName: "Ayşe", email: "a@b.com", password: "secret1" });
+    expect(API.post).toHaveBeenCalledWith("/auth/register", { displayName: "Ayşe", email: "a@b.com", password: "secret1", acceptTerms: true });
   });
 
   test("the warning waits until the user leaves the repeat field", async () => {
@@ -115,7 +124,24 @@ describe("Register", () => {
     await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
     await user.type(passwordInput(), "secret1");
     await user.type(repeatInput(), "secret1");
+    await acceptTerms(user);
     await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
     expect(await screen.findByText(/başka bir üye tarafından kullanılıyor/)).toBeInTheDocument();
+  });
+
+  test("the age and terms box must be ticked; the privacy notice is linked separately", async () => {
+    const user = userEvent.setup();
+    await renderRegister();
+    expect(termsBox()).not.toBeChecked();
+    expect(termsBox()).toBeRequired();
+    expect(screen.getByRole("link", { name: "Kullanım Koşulları" })).toHaveAttribute("href", "/terms");
+    expect(screen.getByRole("link", { name: "Gizlilik ve Aydınlatma Metni" })).toHaveAttribute("href", "/privacy");
+
+    await user.type(screen.getByLabelText(/Görünen ad/), "Ayşe");
+    await user.type(screen.getByLabelText(/E-posta/), "a@b.com");
+    await user.type(passwordInput(), "secret1");
+    await user.type(repeatInput(), "secret1");
+    await user.click(screen.getByRole("button", { name: /Üye ol|Hesap oluştur/ }));
+    expect(API.post).not.toHaveBeenCalled(); // tarayıcı işaretsiz kutuyla göndermez
   });
 });

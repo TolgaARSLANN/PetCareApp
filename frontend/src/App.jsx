@@ -20,6 +20,8 @@ const BlogDetails = lazy(() => import("./components/BlogDetails"));
 const BlogEditForm = lazy(() => import("./components/BlogEditForm"));
 const AboutUs = lazy(() => import("./components/AboutUs"));
 const Account = lazy(() => import("./components/Account"));
+const Privacy = lazy(() => import("./components/Privacy"));
+const Terms = lazy(() => import("./components/Terms"));
 
 // Sayfa değişince en üste kaydır ve odağı içeriğe taşı (klavye / ekran okuyucu kullanıcıları için)
 const RouteChangeHandler = () => {
@@ -116,6 +118,8 @@ const routes = [
             ),
           },
           { path: "/about-us", element: <AboutUs /> },
+          { path: "/privacy", element: <Privacy /> },
+          { path: "/terms", element: <Terms /> },
           { path: "*", element: <NotFound /> },
         ],
       },

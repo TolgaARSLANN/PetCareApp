@@ -38,7 +38,7 @@ describe('password length in bytes (bcrypt reads only 72)', () => {
   test('register accepts 72 bytes and rejects more', async () => {
     jest.spyOn(User, 'findOne').mockResolvedValue(null);
     jest.spyOn(User, 'create').mockResolvedValue({});
-    const register = (password) => request(app).post('/api/auth/register').send({ email: 'a@b.com', password, displayName: 'Ali' });
+    const register = (password) => request(app).post('/api/auth/register').send({ email: 'a@b.com', password, displayName: 'Ali', acceptTerms: true });
 
     expect((await register(at72)).status).toBe(201);
     const res = await register(`${at72}X`);

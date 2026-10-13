@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema({
   displayName: { type: String, trim: true, maxlength: 40 },
   // Benzersizlik için adın sadeleştirilmiş hali (displayNameKey): iki hesap aynı adı alamaz
   displayNameKey: { type: String },
+  // Kayıtta "18 yaşından büyüğüm ve Kullanım Koşulları'nı kabul ediyorum" onayı: ne zaman ve
+  // koşulların hangi sürümü (routes/auth.js, TERMS_VERSION). Bu özellikten önce açılan hesaplarda yoktur.
+  termsAcceptedAt: { type: Date },
+  termsVersion: { type: String },
 });
 
 // Görünen adı olmayan eski hesaplar dizine girmez (hepsi "ad yok" diye çakışmasın)

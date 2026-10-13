@@ -41,6 +41,9 @@ function validateCredentials(email, password) {
 }
 
 const INVALID_DISPLAY_NAME = 'A valid display name is required';
+// Kullanım Koşulları'nın sürümü (frontend/src/components/Terms.jsx'teki güncelleme tarihi).
+// Koşullar değişince güncellenir; her hesap hangi sürümü kabul ettiğini saklar.
+const TERMS_VERSION = '2026-10-14';
 const DISPLAY_NAME_IN_USE = 'Display name in use';
 
 // Starts a new session (fresh login time) for the user
@@ -54,6 +57,8 @@ router.post('/register', authLimiter, async (req, res) => {
     if (validationError) return res.status(400).json({ message: validationError });
     const displayName = parseDisplayName(req.body.displayName);
     if (!displayName) return res.status(400).json({ message: INVALID_DISPLAY_NAME });
+    // 18 yaş ve Kullanım Koşulları onayı (formdaki kutu); yalnızca açık bir "evet" sayılır
+    if (req.body.acceptTerms !== true) return res.status(400).json({ message: 'Terms must be accepted' });
 
     const existingUser = await findByEmail(email);
     if (existingUser) return res.status(400).json({ message: 'Email in use' });
@@ -68,6 +73,8 @@ router.post('/register', authLimiter, async (req, res) => {
       password: hashedPassword,
       displayName,
       displayNameKey: nameKey,
+      termsAcceptedAt: new Date(),
+      termsVersion: TERMS_VERSION,
     });
 
     // Kayıt olan kişi doğrudan oturum açmış olur (aynı bilgileri bir de giriş formuna yazmasın)

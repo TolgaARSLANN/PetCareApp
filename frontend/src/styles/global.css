@@ -1118,3 +1118,22 @@ select.input {
     scroll-behavior: auto !important;
   }
 }
+
+/* Onay kutusu: kutu ve metni tek bir tıklanabilir etiket */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.check input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}

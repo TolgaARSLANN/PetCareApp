@@ -227,3 +227,30 @@
 .site-footer :focus-visible {
   outline-color: #5eead4;
 }
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-6);
+}
+
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+}
+
+.footer-legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #cbd5e1;
+  text-decoration: none;
+}
+
+.footer-legal a:hover {
+  color: #5eead4;
+  text-decoration: underline;
+}

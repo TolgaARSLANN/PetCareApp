@@ -28,6 +28,14 @@ const Footer = () => {
       </div>
       <div className="container footer-bottom">
         <p>© {new Date().getFullYear()} Pawfect Care</p>
+        <ul className="footer-legal">
+          <li>
+            <Link to="/privacy">Gizlilik ve Aydınlatma Metni</Link>
+          </li>
+          <li>
+            <Link to="/terms">Kullanım Koşulları</Link>
+          </li>
+        </ul>
       </div>
     </footer>
   );

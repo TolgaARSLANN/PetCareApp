@@ -18,6 +18,7 @@ const ERROR_TRANSLATIONS = {
   "A valid email is required": "Geçerli bir e-posta adresi girin.",
   "Password must be at least 6 characters": "Parola en az 6 karakter olmalı.",
   "Password must be at most 72 bytes": PASSWORD_TOO_LONG,
+  "Terms must be accepted": "Üye olmak için 18 yaşından büyük olduğunuzu ve Kullanım Koşulları'nı kabul ettiğinizi onaylayın.",
   "Too many attempts, please try again later":
     "Çok fazla başarısız deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin.",
 };
@@ -28,6 +29,7 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   // Uyarı, kullanıcı tekrar alanından çıkınca ya da formu gönderince gösterilir (yazarken değil)
   const [touchedRepeat, setTouchedRepeat] = useState(false);
   const repeatRef = useRef(null);
@@ -54,7 +56,7 @@ const Register = () => {
     try {
       // Sunucu kayıtla birlikte oturumu da başlatır; giriş formuna gerek kalmaz.
       // Yönlendirmeyi GuestOnly yapar (oturum açılınca /pets'e gider).
-      const { data } = await API.post("/auth/register", { displayName, email, password });
+      const { data } = await API.post("/auth/register", { displayName, email, password, acceptTerms });
       login(data.userId, data.displayName);
     } catch (err) {
       const message = err.response?.data?.message;
@@ -125,6 +127,32 @@ const Register = () => {
               Parolalar eşleşmiyor.
             </p>
           )}
+        </div>
+        <div className="field">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              required
+              aria-describedby="privacy-note"
+            />
+            <span>
+              18 yaşından büyüğüm ve{" "}
+              <Link to="/terms" target="_blank" rel="noopener">
+                Kullanım Koşulları
+              </Link>
+              'nı kabul ediyorum.
+            </span>
+          </label>
+          {/* Aydınlatma bir onay değil, bilgilendirmedir (KVKK m. 10): ayrı bir cümleyle gösterilir */}
+          <p id="privacy-note" className="field-hint">
+            Kişisel verilerinizin nasıl işlendiğini{" "}
+            <Link to="/privacy" target="_blank" rel="noopener">
+              Gizlilik ve Aydınlatma Metni
+            </Link>
+            'nde bulabilirsiniz.
+          </p>
         </div>
         <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={busy}>
           {busy && <Spinner size={18} />}
