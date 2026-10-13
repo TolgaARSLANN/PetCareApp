@@ -232,7 +232,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 
 **4. Check `TRUST_PROXY`**
 
-Rate limits count requests per visitor IP. Behind Vercel and Render the API must be told how many proxies to trust, or every visitor would share one IP (and one limit). Open `https://<your-site>/api/health`: `clientIp` must be **your own public IP**. If it shows another address, raise `TRUST_PROXY` on Render by one and check again; use the smallest number that shows your IP (a larger one would let visitors fake their IP).
+Rate limits count requests per visitor IP. Behind Vercel and Render the API must be told how many proxies to trust, or every visitor would share one IP (and one limit). Open `https://<your-site>/api/health`: `clientIp` must be **your own public IP**. If it shows another address, look at `proxyChain` (the addresses the request passed through, nearest first): `TRUST_PROXY` is the position of your IP in that list, counting from 0. Use exactly that number (a larger one would let visitors fake their IP).
 
 **Good to know**
 
