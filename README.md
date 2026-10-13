@@ -160,7 +160,8 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 | `PHOTO_UPLOADS_PER_HOUR` | `20` | Photo uploads (blog covers and pet photos) per user per hour |
 | `PHOTO_STORAGE_MB` | `25` | Total size of one user's photos (blog covers and pet photos) |
 | `IMAGE_RATE_LIMIT` | `600` | Photo requests per IP per 15 minutes (photos have their own limit; a blog page shows 9) |
-| `TRUST_PROXY` | `0` | Reverse proxies in front of the API (usually `1` when hosted), so rate limits see the real client IP |
+| `TRUST_PROXY` | `0` | Reverse proxies in front of the API (`4` behind Vercel + Render), so rate limits see the real client IP |
+| `PROXY_SECRET` | — | Production only (required there): shared secret the site's proxy sends with every API request; others are refused |
 
 Start the server:
 
@@ -229,6 +230,7 @@ The backend tests mock the database layer, so they run without MongoDB or a `.en
 
 1. *Add New → Project*, import this repository and set **Root Directory** to `frontend`. Everything else comes from `vercel.json`.
 2. After the first deploy, set `CLIENT_ORIGIN` on Render to the site's address (for example `https://pawfect-care.vercel.app`).
+3. Generate a secret with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and enter the same value as `PROXY_SECRET` on **both** Render and Vercel (*Settings → Environment Variables*), then redeploy both. Vercel adds it to every `/api` request; the API refuses requests without it, so nobody can call Render directly and fake their IP. The API does not start in production without it.
 
 **4. Check `TRUST_PROXY`**
 

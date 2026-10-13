@@ -20,8 +20,11 @@ const config = {
   // many users can share one IP (offices, schools, mobile carriers).
   apiRateLimit: Number(process.env.API_RATE_LIMIT) || 1000,
   // Number of reverse proxies in front of the API (so rate limits see the real client IP).
-  // 0 when the API is reached directly, e.g. 1 behind Render / Railway / a Vercel rewrite.
+  // 0 when the API is reached directly; 4 behind Vercel + Render (measure with /api/health).
   trustProxy: Number(process.env.TRUST_PROXY) || 0,
+  // Shared secret the site's proxy (Vercel) sends as X-Proxy-Secret; requests without it are
+  // refused, so nobody can bypass the proxy and fake their IP. Required in production.
+  proxySecret: process.env.PROXY_SECRET || '',
 
   // Blog cover photos per user: uploads per hour, and total storage (MB) for all of a user's photos.
   // Without them one account could fill the database (each upload is up to 2 MB).
@@ -35,6 +38,11 @@ const config = {
 
 if (!config.jwtSecret) {
   console.error('JWT_SECRET is not set. Copy .env.example to .env and fill it in.');
+  process.exit(1);
+}
+
+if (config.isProduction && config.proxySecret.length < 32) {
+  console.error('PROXY_SECRET must be set (at least 32 characters) in production. See README > Deployment.');
   process.exit(1);
 }
 
