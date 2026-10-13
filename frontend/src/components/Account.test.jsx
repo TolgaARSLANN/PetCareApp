@@ -49,6 +49,42 @@ describe("Account", () => {
     expect(screen.getByText("a@b.com")).toBeInTheDocument();
   });
 
+  test("an account without a display name is asked to set one", async () => {
+    const user = userEvent.setup();
+    vi.mocked(API.put).mockResolvedValue({ data: { displayName: "Tolga Arslan" } });
+    await renderAccount();
+
+    expect(screen.getByText(/Henüz bir görünen adınız yok/)).toBeInTheDocument();
+    const save = screen.getByRole("button", { name: "Kaydet" });
+    expect(save).toBeDisabled(); // değişiklik yokken
+    await user.type(input(/Görünen ad/), "  Tolga   Arslan ");
+    await user.click(save);
+
+    expect(API.put).toHaveBeenCalledWith("/auth/display-name", { displayName: "  Tolga   Arslan " });
+    expect(await screen.findByText("Görünen adınız kaydedildi.")).toBeInTheDocument();
+    expect(input(/Görünen ad/)).toHaveValue("Tolga Arslan"); // sunucunun düzelttiği hali
+    expect(save).toBeDisabled();
+  });
+
+  test("a display name someone else uses is explained", async () => {
+    const user = userEvent.setup();
+    vi.mocked(API.get).mockImplementation((url) =>
+      Promise.resolve(
+        url === "/auth/me"
+          ? { data: { userId: "u1", displayName: "Ayşe" } }
+          : { data: { email: "a@b.com", displayName: "Ayşe", petCount: 0, blogCount: 0 } }
+      )
+    );
+    vi.mocked(API.put).mockRejectedValue({ response: { status: 400, data: { message: "Display name in use" } } });
+    await renderAccount();
+
+    expect(input(/Görünen ad/)).toHaveValue("Ayşe");
+    await user.clear(input(/Görünen ad/));
+    await user.type(input(/Görünen ad/), "Tolga");
+    await user.click(screen.getByRole("button", { name: "Kaydet" }));
+    expect(await screen.findByText(/başka bir üye tarafından kullanılıyor/)).toBeInTheDocument();
+  });
+
   test("changes the password", async () => {
     const user = userEvent.setup();
     vi.mocked(API.put).mockResolvedValue({ data: {} });

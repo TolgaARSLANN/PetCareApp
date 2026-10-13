@@ -5,7 +5,7 @@ const { newId, tokenFor } = require('./helpers');
 
 afterEach(() => jest.restoreAllMocks());
 
-const blog = { title: 'Başlık', content: 'İçerik', author: 'Tolga' };
+const blog = { title: 'Başlık', content: 'İçerik' };
 
 describe('blog write permissions', () => {
   test('creating a post without a token returns 401', async () => {

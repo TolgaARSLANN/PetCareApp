@@ -124,7 +124,7 @@ describe('emails are case-insensitive', () => {
   test('register stores the email in lower case and checks duplicates that way', async () => {
     const findOne = jest.spyOn(User, 'findOne').mockResolvedValue(null);
     const create = jest.spyOn(User, 'create').mockResolvedValue({});
-    const res = await request(app).post('/api/auth/register').send({ email: ' Ali@Mail.COM ', password: '123456' });
+    const res = await request(app).post('/api/auth/register').send({ email: ' Ali@Mail.COM ', password: '123456', displayName: 'Ali' });
     expect(res.status).toBe(201);
     expect(findOne).toHaveBeenCalledWith({ email: 'ali@mail.com' });
     expect(create.mock.calls[0][0].email).toBe('ali@mail.com');

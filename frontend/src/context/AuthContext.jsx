@@ -5,7 +5,7 @@ import { AuthContext } from "./useAuth";
 // Oturum durumu: sayfa açılınca sunucuya sorulur (/auth/me). Token httpOnly çerezde
 // olduğu için tarayıcı kodu onu okuyamaz; kim olduğumuzu yalnızca sunucu söyler.
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // { id } | null
+  const [user, setUser] = useState(null); // { id, displayName } | null (displayName eski hesaplarda null)
   const [checking, setChecking] = useState(true);
   // Oturum neden kapandı; korumalı sayfalar yönlendirirken bunu kullanır (bkz. RouteGuards):
   // "accountDeleted" → ana sayfa, "sessionEnded" / "signedOutEverywhere" → açıklamalı giriş sayfası
@@ -21,7 +21,10 @@ export const AuthProvider = ({ children }) => {
 
     let cancelled = false;
     API.get("/auth/me")
-      .then(({ data }) => !cancelled && setUser(data.userId ? { id: data.userId } : null))
+      .then(
+        ({ data }) =>
+          !cancelled && setUser(data.userId ? { id: data.userId, displayName: data.displayName || null } : null)
+      )
       .catch(() => !cancelled && setUser(null))
       .finally(() => !cancelled && setChecking(false));
 
@@ -37,9 +40,14 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = useCallback((userId) => {
+  const login = useCallback((userId, displayName = null) => {
     setEndReason(null);
-    setUser({ id: userId });
+    setUser({ id: userId, displayName });
+  }, []);
+
+  // Hesabım sayfasında görünen ad değişince (blog formu yazar adını buradan gösterir)
+  const setDisplayName = useCallback((displayName) => {
+    setUser((current) => (current ? { ...current, displayName } : current));
   }, []);
 
   const logout = useCallback(async () => {
@@ -59,8 +67,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const value = useMemo(
-    () => ({ user, isLoggedIn: Boolean(user), checking, endReason, login, logout, endSession }),
-    [user, checking, endReason, login, logout, endSession]
+    () => ({ user, isLoggedIn: Boolean(user), checking, endReason, login, logout, endSession, setDisplayName }),
+    [user, checking, endReason, login, logout, endSession, setDisplayName]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

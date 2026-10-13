@@ -9,6 +9,8 @@ const authMiddleware = require('../middleware/authMiddleware');
 const { getUserId } = authMiddleware;
 const { authLimiter } = require('../middleware/rateLimits');
 const { AUTH_COOKIE, cookieOptions, issueSession } = require('../middleware/authCookie');
+const users = require('../services/users');
+const { parseDisplayName, displayNameKey } = require('../services/displayName');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
@@ -38,6 +40,9 @@ function validateCredentials(email, password) {
   return null;
 }
 
+const INVALID_DISPLAY_NAME = 'A valid display name is required';
+const DISPLAY_NAME_IN_USE = 'Display name in use';
+
 // Starts a new session (fresh login time) for the user
 const startSession = (res, user) => issueSession(res, { userId: user._id, tokenVersion: user.tokenVersion || 0 });
 
@@ -47,17 +52,33 @@ router.post('/register', authLimiter, async (req, res) => {
     const { email, password } = req.body;
     const validationError = validateCredentials(email, password);
     if (validationError) return res.status(400).json({ message: validationError });
+    const displayName = parseDisplayName(req.body.displayName);
+    if (!displayName) return res.status(400).json({ message: INVALID_DISPLAY_NAME });
 
     const existingUser = await findByEmail(email);
     if (existingUser) return res.status(400).json({ message: 'Email in use' });
+    const nameKey = displayNameKey(displayName);
+    if (await User.exists({ displayNameKey: nameKey })) {
+      return res.status(400).json({ message: DISPLAY_NAME_IN_USE });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email: normalizeEmail(email), password: hashedPassword });
+    const user = await User.create({
+      email: normalizeEmail(email),
+      password: hashedPassword,
+      displayName,
+      displayNameKey: nameKey,
+    });
 
     // Kayıt olan kişi doğrudan oturum açmış olur (aynı bilgileri bir de giriş formuna yazmasın)
     startSession(res, user);
-    res.status(201).json({ userId: String(user._id) });
+    res.status(201).json({ userId: String(user._id), displayName });
   } catch (error) {
+    // Aynı anda iki kayıt aynı e-postayı ya da adı aldıysa ikincisi kontrolü geçmiş olabilir
+    if (users.isDuplicateKey(error, 'email')) return res.status(400).json({ message: 'Email in use' });
+    if (users.isDuplicateKey(error, 'displayNameKey')) {
+      return res.status(400).json({ message: DISPLAY_NAME_IN_USE });
+    }
     console.error('Error registering user:', error);
     res.status(500).json({ message: 'Server error' });
   }
@@ -77,19 +98,20 @@ router.post('/login', authLimiter, async (req, res) => {
     if (!user || !match) return res.status(400).json({ message: 'Invalid credentials' });
 
     startSession(res, user);
-    res.json({ userId: String(user._id) });
+    res.json({ userId: String(user._id), displayName: user.displayName || null });
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Oturum kontrolü: giriş yapan kullanıcının ID'si, oturum yoksa null.
+// Oturum kontrolü: giriş yapan kullanıcının ID'si ve görünen adı, oturum yoksa null.
 // Ziyaretçi için de 200 döner; "kimse" geçerli bir cevaptır (her sayfa açılışında 401 hatası üretmez).
 router.get('/me', async (req, res) => {
   try {
     const userId = await getUserId(req, res);
-    res.json({ userId: userId ? String(userId) : null });
+    if (!userId) return res.json({ userId: null });
+    res.json({ userId: String(userId), displayName: await users.getDisplayName(userId) });
   } catch (error) {
     console.error('Error checking session:', error);
     res.status(500).json({ message: 'Server error' });
@@ -115,16 +137,16 @@ router.post('/logout-all', authMiddleware, async (req, res) => {
   }
 });
 
-// Hesap bilgisi: e-posta ve hesaba bağlı kayıt sayıları (hesap silme uyarısında gösterilir)
+// Hesap bilgisi: e-posta, görünen ad ve hesaba bağlı kayıt sayıları (hesap silme uyarısında gösterilir)
 router.get('/account', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('email');
+    const user = await User.findById(req.userId).select('email displayName');
     if (!user) return res.status(404).json({ message: 'Account not found' });
     const [petCount, blogCount] = await Promise.all([
       Pet.countDocuments({ ownerId: req.userId }),
       Blog.countDocuments({ authorId: req.userId }),
     ]);
-    res.json({ email: user.email, petCount, blogCount });
+    res.json({ email: user.email, displayName: user.displayName || null, petCount, blogCount });
   } catch (error) {
     console.error('Error fetching account:', error);
     res.status(500).json({ message: 'Server error' });
@@ -137,7 +159,7 @@ const withoutInternals = ({ __v, ownerId, authorId, imageId, photoId, ...rest })
 
 router.get('/account/export', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('email').lean();
+    const user = await User.findById(req.userId).select('email displayName').lean();
     if (!user) return res.status(404).json({ message: 'Account not found' });
     const [pets, blogs] = await Promise.all([
       Pet.find({ ownerId: req.userId }).lean(),
@@ -150,12 +172,36 @@ router.get('/account/export', authMiddleware, async (req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json({
       exportedAt: exportedAt.toISOString(),
-      account: { email: user.email },
+      account: { email: user.email, displayName: user.displayName || null },
       pets: pets.map(withoutInternals),
       blogs: blogs.map(withoutInternals),
     });
   } catch (error) {
     console.error('Error exporting account data:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Görünen adı belirleme ya da değiştirme. Kullanıcının tüm blog yazılarındaki yazar adı da güncellenir
+// (yazılar adı kendileri saklar; liste her açılışta kullanıcılara bakmak zorunda kalmaz).
+router.put('/display-name', authMiddleware, async (req, res) => {
+  try {
+    const displayName = parseDisplayName(req.body?.displayName);
+    if (!displayName) return res.status(400).json({ message: INVALID_DISPLAY_NAME });
+    const nameKey = displayNameKey(displayName);
+    if (await User.exists({ displayNameKey: nameKey, _id: { $ne: req.userId } })) {
+      return res.status(400).json({ message: DISPLAY_NAME_IN_USE });
+    }
+
+    const result = await User.updateOne({ _id: req.userId }, { displayName, displayNameKey: nameKey });
+    if (!result.matchedCount) return res.status(404).json({ message: 'Account not found' });
+    await Blog.updateMany({ authorId: req.userId }, { author: displayName });
+    res.json({ displayName });
+  } catch (error) {
+    if (users.isDuplicateKey(error, 'displayNameKey')) {
+      return res.status(400).json({ message: DISPLAY_NAME_IN_USE });
+    }
+    console.error('Error changing display name:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -32,7 +32,7 @@ const Login = () => {
     try {
       // Sunucu oturumu httpOnly çerezle başlatır; yanıtta yalnızca kullanıcı ID'si gelir
       const { data } = await API.post("/auth/login", { email, password });
-      login(data.userId);
+      login(data.userId, data.displayName);
       // Girişe bir korumalı sayfadan yönlendirildiyse oraya geri dön
       navigate(location.state?.from || "/pets", { replace: true });
     } catch (err) {

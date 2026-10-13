@@ -28,7 +28,7 @@ describe('GET /api/auth/account', () => {
     const res = await request(app).get('/api/auth/account').set('Authorization', `Bearer ${tokenFor(userId)}`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ email: 'a@b.com', petCount: 3, blogCount: 2 });
+    expect(res.body).toEqual({ email: 'a@b.com', displayName: null, petCount: 3, blogCount: 2 });
     expect(String(pets.mock.calls[0][0].ownerId)).toBe(String(userId));
   });
 
@@ -150,7 +150,7 @@ describe('GET /api/auth/account/export', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-disposition']).toMatch(/attachment; filename="pawfect-care-verilerim-\d{4}-\d{2}-\d{2}\.json"/);
     expect(res.headers['cache-control']).toBe('no-store');
-    expect(res.body.account).toEqual({ email: 'a@b.com' });
+    expect(res.body.account).toEqual({ email: 'a@b.com', displayName: null });
     expect(res.body.pets).toEqual([{ _id: 'p1', name: 'Pamuk', healthRecords: [{ notes: 'kontrol' }] }]);
     expect(res.body.blogs).toEqual([{ _id: 'b1', title: 'Yazı' }]);
     expect(JSON.stringify(res.body)).not.toMatch(/hash|tokenVersion|ownerId|authorId/);

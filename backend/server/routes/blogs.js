@@ -7,6 +7,7 @@ const { parseImageDataUrl } = require('../services/images');
 const { photoJson, storePhoto, deletePhoto } = require('../services/photoStore');
 const authMiddleware = require('../middleware/authMiddleware');
 const { photoUploadLimiter } = require('../middleware/rateLimits');
+const users = require('../services/users');
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -52,7 +53,9 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-const VALIDATION_MESSAGE = 'Title, content and author are required (within length limits)';
+const VALIDATION_MESSAGE = 'Title and content are required (within length limits)';
+// Yazar adı istemciden alınmaz: yazarın görünen adıdır (başkası adına yazı yayınlanamasın)
+const DISPLAY_NAME_REQUIRED = 'Display name required';
 
 // Hata yanıtları: fotoğraf hataları kendi mesajıyla, doğrulama hataları 400, gerisi 500
 const sendBlogError = (res, err, logMessage) => {
@@ -82,8 +85,10 @@ const attachImage = async (blog, imageData, ownerId, replacingId) => {
 router.post('/', authMiddleware, photoJson, photoUploadLimiter, async (req, res) => {
   let savedImage = null;
   try {
-    const { title, content, author, image, imageData } = req.body;
+    const { title, content, image, imageData } = req.body;
     if (isNewImageAddress(image, undefined)) return res.status(400).json({ error: 'Invalid image' });
+    const author = await users.getDisplayName(req.userId);
+    if (!author) return res.status(409).json({ error: DISPLAY_NAME_REQUIRED });
 
     const blog = new Blog({ title, content, author, image, authorId: req.userId });
     if (imageData) savedImage = await attachImage(blog, imageData, req.userId);
@@ -105,10 +110,12 @@ router.put('/:id', authMiddleware, photoJson, photoUploadLimiter, async (req, re
     const blog = await Blog.findOne({ _id: req.params.id, authorId: req.userId }); // Sahiplik kontrolü
     if (!blog) return res.status(404).json({ error: 'Blog not found or unauthorized' });
 
-    const { title, content, author, image, imageData } = req.body;
+    const { title, content, image, imageData } = req.body;
     if (isNewImageAddress(image, blog.image)) return res.status(400).json({ error: 'Invalid image' });
 
     const previousImageId = blog.imageId;
+    // Görünen adı henüz olmayan eski hesapların yazıları eski yazar adını korur
+    const author = (await users.getDisplayName(req.userId)) || blog.author;
     blog.set({ title, content, author });
     if (imageData) {
       savedImage = await attachImage(blog, imageData, req.userId, previousImageId);

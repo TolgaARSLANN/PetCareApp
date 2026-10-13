@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../services/api";
 import { useAuth } from "../context/useAuth";
+import { DISPLAY_NAME_ERRORS, DISPLAY_NAME_HINT, DISPLAY_NAME_MAX } from "../utils/displayName";
 import { isPasswordTooLong, PASSWORD_TOO_LONG } from "../utils/validation";
 import AuthShell from "./AuthShell";
 import Alert from "./ui/Alert";
@@ -12,6 +13,7 @@ import useDocumentTitle from "../hooks/useDocumentTitle";
 
 // Backend'in döndürdüğü mesajların Türkçesi
 const ERROR_TRANSLATIONS = {
+  ...DISPLAY_NAME_ERRORS,
   "Email in use": "Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.",
   "A valid email is required": "Geçerli bir e-posta adresi girin.",
   "Password must be at least 6 characters": "Parola en az 6 karakter olmalı.",
@@ -22,6 +24,7 @@ const ERROR_TRANSLATIONS = {
 
 const Register = () => {
   useDocumentTitle("Üye ol");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
@@ -51,8 +54,8 @@ const Register = () => {
     try {
       // Sunucu kayıtla birlikte oturumu da başlatır; giriş formuna gerek kalmaz.
       // Yönlendirmeyi GuestOnly yapar (oturum açılınca /pets'e gider).
-      const { data } = await API.post("/auth/register", { email, password });
-      login(data.userId);
+      const { data } = await API.post("/auth/register", { displayName, email, password });
+      login(data.userId, data.displayName);
     } catch (err) {
       const message = err.response?.data?.message;
       setError(
@@ -77,6 +80,16 @@ const Register = () => {
     >
       {error && <Alert type="error">{error}</Alert>}
       <form onSubmit={handleSubmit} className="form-stack">
+        <Field id="display-name" label="Görünen ad" hint={DISPLAY_NAME_HINT} required>
+          <input
+            type="text"
+            className="input"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            autoComplete="nickname"
+            maxLength={DISPLAY_NAME_MAX}
+          />
+        </Field>
         <Field id="email" label="E-posta" required>
           <input
             type="email"
