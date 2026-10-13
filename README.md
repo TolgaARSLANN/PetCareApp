@@ -315,15 +315,15 @@ All pet endpoints only return or modify pets owned by the logged-in user.
 
 ---
 
-## 🗺️ Roadmap
+## 💡 Possible improvements
 
-Planned, not built yet:
+Ideas for future versions:
 
-- [ ] **Forgot password:** reset the password with a time-limited link sent by email (needs an email service and a verified sender domain)
-- [ ] **Email verification:** confirm the address with a link after sign-up
-- [ ] **Sign in with Google**
-- [ ] **Reminder emails** for upcoming vaccines and appointments
-- [ ] **Profile photo**
+- **Forgot password:** reset the password with a time-limited link sent by email (needs an email service and a verified sender domain)
+- **Email verification:** confirm the address with a link after sign-up
+- **Sign in with Google**
+- **Reminder emails** for upcoming vaccines and appointments
+- **Profile photo**
 
 ---
 
