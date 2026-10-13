@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://pawfect-care-api.onrender.com/api/:path*"
+      "destination": "https://pawfect-care-api-yzx6.onrender.com/api/:path*"
     },
     {
       "source": "/((?!api/).*)",
